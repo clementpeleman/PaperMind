@@ -15,7 +15,6 @@ import {
   ResearchGapInputSchema,
   ResearchGapOutputSchema 
 } from './schemas';
-import { getOptimalModel } from './config';
 import { extractPaperContent } from './utils';
 
 export class ResearchGapAgent extends BaseAgent<ResearchGapInput, ResearchGapOutput> {

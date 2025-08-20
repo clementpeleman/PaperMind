@@ -3,7 +3,6 @@
  * Uses LangChain to analyze individual research papers comprehensively
  */
 
-import { ChatOpenAI } from '@langchain/openai';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { StructuredOutputParser } from 'langchain/output_parsers';
 import { RunnableSequence } from '@langchain/core/runnables';
@@ -15,8 +14,7 @@ import {
   PaperAnalysisInputSchema,
   PaperAnalysisOutputSchema 
 } from './schemas';
-import { getOptimalModel } from './config';
-import { extractPaperContent, estimateTokens } from './utils';
+import { extractPaperContent } from './utils';
 
 export class PaperAnalysisAgent extends BaseAgent<PaperAnalysisInput, PaperAnalysisOutput> {
   public name = 'paper-analysis';
