@@ -14,7 +14,16 @@ import { AlertTriangle, Table, Wand } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 // Helper to generate a Zod schema from the table's column definitions
-function generateZodSchema(table: any): z.ZodObject<any, any, any> {
+function generateZodSchema(table: {
+  columns: {
+    is_updatable: boolean;
+    is_generated: boolean;
+    data_type: string;
+    enums: [string, ...string[]];
+    is_nullable: boolean;
+    name: string;
+  }[];
+}): z.ZodObject<any, any, any> {
   if (!table || !table.columns) {
     return z.object({})
   }
@@ -55,11 +64,11 @@ function generateZodSchema(table: any): z.ZodObject<any, any, any> {
   return z.object(shape)
 }
 
-const getPrimaryKeys = (table: any): string[] => {
+const getPrimaryKeys = (table: { primary_keys: { name: string }[] }): string[] => {
   if (!table || !table.primary_keys) {
     return []
   }
-  return table.primary_keys.map((pk: any) => pk.name)
+  return table.primary_keys.map((pk: { name: string }) => pk.name)
 }
 
 function EditRowView({
@@ -69,18 +78,18 @@ function EditRowView({
   onSuccess,
 }: {
   projectRef: string
-  table: any
-  row: any
+  table: { [key: string]: unknown }
+  row: { [key: string]: unknown }
   onSuccess: () => void
 }) {
   const { mutate: runUpdateQuery, isPending: isUpdatePending } = useRunQuery()
-  const formSchema = useMemo(() => generateZodSchema(table), [table])
+  const formSchema = useMemo(() => generateZodSchema(table as any), [table])
 
   const columnInfo = useMemo(() => {
-    if (!table || !table.columns) return {}
+    if (!table || !(table.columns as { [key: string]: unknown }[])) return {}
 
-    const info: Record<string, any> = {}
-    for (const column of table.columns) {
+    const info: Record<string, { [key: string]: unknown }> = {}
+    for (const column of table.columns as { [key: string]: any }[]) {
       // Only include updatable columns that are not generated
       if (!column.is_updatable || column.is_generated) continue
 
@@ -102,8 +111,8 @@ function EditRowView({
   }, [table])
 
   const handleFormSubmit = useCallback(
-    (formData: any) => {
-      const pks = getPrimaryKeys(table)
+    (formData: { [key: string]: unknown }) => {
+      const pks = getPrimaryKeys(table as any)
       if (pks.length === 0) {
         toast.error('Cannot update row. This table does not have a primary key.')
         return
@@ -114,7 +123,7 @@ function EditRowView({
           if (JSON.stringify(row[key]) === JSON.stringify(value)) return null
 
           // Find the column type to determine formatting
-          const column = table.columns.find((col: any) => col.name === key)
+          const column = (table.columns as { name: string; data_type: string; is_nullable: boolean; enums: string[] }[]).find((col: { name: string }) => col.name === key)
           const dataType = column?.data_type?.toLowerCase() || ''
           const isNullable = column?.is_nullable || false
 
@@ -188,7 +197,7 @@ function EditRowView({
 
   return (
     <div className="px-6 pt-4 pb-10 lg:px-12 lg:pt-10">
-      <h2 className="text-base lg:text-xl font-semibold mb-4">Editing row in {table.name}</h2>
+      <h2 className="text-base lg:text-xl font-semibold mb-4">Editing row in {(table as { name: string }).name}</h2>
       <DynamicForm
         schema={formSchema}
         initialValues={row}
@@ -200,12 +209,12 @@ function EditRowView({
   )
 }
 
-function TableRecordsView({ projectRef, table }: { projectRef: string; table: any }) {
+function TableRecordsView({ projectRef, table }: { projectRef: string; table: { [key: string]: unknown } }) {
   const { push, pop } = useSheetNavigation()
   const [refetchCounter, setRefetchCounter] = useState(0)
 
   const handleRowClick = useCallback(
-    (row: any) => {
+    (row: { [key: string]: unknown }) => {
       push({
         title: `Editing row`,
         component: (
@@ -228,9 +237,9 @@ function TableRecordsView({ projectRef, table }: { projectRef: string; table: an
     <SqlEditor
       hideChartOption={true}
       projectRef={projectRef}
-      label={`View records in ${table.name}`}
-      initialSql={`SELECT * FROM public."${table.name}" LIMIT 100;`}
-      queryKey={table.id}
+      label={`View records in ${(table as { name: string }).name}`}
+      initialSql={`SELECT * FROM public."${(table as { name: string }).name}" LIMIT 100;`}
+      queryKey={(table as { id: string }).id}
       onRowClick={handleRowClick}
       hideSql={true}
       runAutomatically={true}
@@ -245,9 +254,9 @@ export function DatabaseManager({ projectRef }: { projectRef: string }) {
   const { data: tables, isLoading, isError } = useListTables(projectRef, ['public'])
 
   const handleTableClick = useCallback(
-    (table: any) => {
+    (table: { [key: string]: unknown }) => {
       push({
-        title: table.name,
+        title: (table as { name: string }).name,
         component: <TableRecordsView projectRef={projectRef} table={table} />,
       })
     },
@@ -302,7 +311,7 @@ export function DatabaseManager({ projectRef }: { projectRef: string }) {
 
       {tables && tables.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-          {tables.map((table: any) => (
+          {tables.map((table: { id: string; name: string; live_rows_estimate: number }) => (
             <Button
               variant="outline"
               key={table.id}

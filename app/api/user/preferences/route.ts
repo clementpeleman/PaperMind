@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Prepare upsert data based on auth type
-    const upsertData: any = {
+    const upsertData: { [key: string]: unknown } = {
       row_height_preset,
       custom_row_height,
       column_widths,

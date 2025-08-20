@@ -31,7 +31,7 @@ function ProviderSettingsView({
   projectRef: string
   schema: z.ZodObject<any> | z.ZodEffects<z.ZodObject<any>>
   title: string
-  initialValues: any
+  initialValues: { [key: string]: unknown }
   onSuccess: () => void
 }) {
   const { mutate: updateAuthConfig, isPending: isUpdatingConfig } = useUpdateAuthConfig()
@@ -40,7 +40,7 @@ function ProviderSettingsView({
 
   const handleUpdateAuthConfig = (formData: z.infer<typeof actualSchema>) => {
     const payload = Object.fromEntries(
-      Object.entries(formData).filter(([_, value]) => value !== undefined)
+      Object.entries(formData).filter(([, value]) => value !== undefined)
     )
 
     if (Object.keys(payload).length === 0) {
@@ -71,7 +71,7 @@ function ProviderSettingsView({
         }
         return acc
       },
-      {} as Record<string, any>
+      {} as Record<string, unknown>
     )
 
     return result
@@ -103,7 +103,7 @@ export function AuthManager({ projectRef }: { projectRef: string }) {
 
   const handleUpdateGeneralSettings = (formData: AuthGeneralSettingsSchema) => {
     const payload = Object.fromEntries(
-      Object.entries(formData).filter(([_, value]) => value !== undefined)
+      Object.entries(formData).filter(([, value]) => value !== undefined)
     )
 
     if (Object.keys(payload).length === 0) {
@@ -152,7 +152,7 @@ export function AuthManager({ projectRef }: { projectRef: string }) {
             projectRef={projectRef}
             schema={provider.schema}
             title={`${provider.name} Provider Settings`}
-            initialValues={authConfigData}
+            initialValues={authConfigData as { [key: string]: unknown }}
             onSuccess={() => pop()}
           />
         ),
@@ -173,7 +173,7 @@ export function AuthManager({ projectRef }: { projectRef: string }) {
         }
         return acc
       },
-      {} as Record<string, any>
+      {} as Record<string, unknown>
     )
   }, [authConfigData])
 

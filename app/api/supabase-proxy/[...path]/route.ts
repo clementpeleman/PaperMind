@@ -71,9 +71,9 @@ async function forwardToSupabaseAPI(request: Request, method: string, params: { 
 
     // Return the response with the same status
     return NextResponse.json(responseData, { status: response.status })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Supabase API proxy error:', error)
-    const errorMessage = error.message || 'An unexpected error occurred.'
+    const errorMessage = (error as Error).message || 'An unexpected error occurred.'
     return NextResponse.json({ message: errorMessage }, { status: 500 })
   }
 }

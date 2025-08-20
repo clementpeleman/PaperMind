@@ -53,7 +53,7 @@ export function AuthDataSourceSelector({ onSelectSampleData }: AuthDataSourceSel
                 Try Sample Data
               </CardTitle>
               <CardDescription>
-                Explore PaperMind's features with curated research papers
+                Explore PaperMind&apos;s features with curated research papers
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

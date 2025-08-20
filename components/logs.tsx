@@ -26,7 +26,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useGetLogs } from '@/hooks/use-logs'
-import { LogsTableName, genDefaultQuery } from '../../lib/logs'
+// Update the import path below if '../../lib/logs' is incorrect.
+// For example, if the correct path is '@/lib/logs', use that instead:
+import { LogsTableName, genDefaultQuery } from '@/lib/logs'
 import { cn } from '@/lib/utils'
 import { Check, ChevronsUpDown, Logs, Terminal } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -189,8 +191,8 @@ export function LogsManager({ projectRef }: { projectRef: string }) {
             <Terminal className="h-4 w-4" />
             <AlertTitle>Error fetching logs</AlertTitle>
             <AlertDescription>
-              {(error as any)?.message ||
-                (typeof logs?.error === 'object' && logs.error?.message) ||
+              {(error as { message: string })?.message ||
+                (typeof logs?.error === 'object' && (logs.error as { message: string })?.message) ||
                 'An unexpected error occurred. Please try again.'}
             </AlertDescription>
           </Alert>
@@ -215,9 +217,9 @@ export function LogsManager({ projectRef }: { projectRef: string }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(logs.result as any[]).map((log, index) => (
-                <TableRow key={log.id || index} className="group hover:bg-muted/50 relative">
-                  {Object.keys(logs.result?.[0] ?? []).map((key, idx, arr) => {
+              {(logs.result as { [key: string]: unknown }[]).map((log, index) => (
+                <TableRow key={(log.id as string) || index} className="group hover:bg-muted/50 relative">
+                  {Object.keys(logs.result?.[0] ?? []).map((key) => {
                     const value = log[key]
                     const formattedValue = (() => {
                       if (key === 'timestamp' && typeof value === 'number') {

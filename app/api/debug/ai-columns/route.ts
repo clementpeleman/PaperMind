@@ -38,12 +38,12 @@ export async function GET(request: NextRequest) {
     // If no user found, still show debug info
     if (!user) {
       // Still show debug info even without auth
-      const { data: allUsers, error: usersError } = await supabase
+      const { data: allUsers } = await supabase
         .from('users')
         .select('id, zotero_user_id, zotero_username')
         .limit(10);
 
-      const { data: allPrefs, error: prefsError } = await supabase
+      const { data: allPrefs } = await supabase
         .from('user_preferences')
         .select('user_id, ai_columns')
         .limit(10);
@@ -72,13 +72,13 @@ export async function GET(request: NextRequest) {
     console.log('Debug AI Columns: Preferences result:', { preferences, error });
 
     // Also check what users exist in the database
-    const { data: allUsers, error: usersError } = await supabase
+    const { data: allUsers } = await supabase
       .from('users')
       .select('id, zotero_user_id, zotero_username')
       .limit(10);
 
     // And check all user_preferences entries
-    const { data: allPrefs, error: prefsError } = await supabase
+    const { data: allPrefs } = await supabase
       .from('user_preferences')
       .select('user_id, ai_columns')
       .limit(10);

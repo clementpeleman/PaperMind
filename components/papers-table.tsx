@@ -24,9 +24,8 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-  ColumnResizeMode,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronDown, MoreHorizontal, Edit, Trash, ExternalLink, Sparkles, Loader2, Maximize2, GripVertical, Save } from "lucide-react";
+import { ArrowUpDown, ChevronDown, MoreHorizontal, Edit, Trash, ExternalLink, Sparkles, Loader2, Maximize2, GripVertical } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -544,7 +543,7 @@ export function PapersTable({ papers, isLoading, error }: PapersTableProps) {
         setInitialLoad(false);
       }
     }
-  }, [preferences, preferencesLoading]);
+  }, [preferences, preferencesLoading, initialLoad, isAddingColumn]);
 
   // Save preferences directly to database
   const handleColumnVisibilityChange = (newVisibility: VisibilityState) => {
@@ -560,10 +559,10 @@ export function PapersTable({ papers, isLoading, error }: PapersTableProps) {
     [savePreferences]
   );
 
-  const handleColumnSizingChange = (newSizing: Record<string, number>) => {
+  const handleColumnSizingChange = React.useCallback((newSizing: Record<string, number>) => {
     setColumnSizing(newSizing);
     debouncedSaveColumnSizing(newSizing);
-  };
+  }, [debouncedSaveColumnSizing]);
 
   const handleHeightConfigChange = (newConfig: HeightModeConfig) => {
     setHeightConfig(newConfig);
@@ -729,7 +728,7 @@ export function PapersTable({ papers, isLoading, error }: PapersTableProps) {
     }
   };
 
-  const handleGenerateIndividual = async (columnId: string, paperId: string) => {
+  const handleGenerateIndividual = React.useCallback(async (columnId: string, paperId: string) => {
     const key = `${columnId}-${paperId}`;
     setGeneratingStates(prev => ({ ...prev, [key]: true }));
     // Clear any previous error for this cell
@@ -757,9 +756,9 @@ export function PapersTable({ papers, isLoading, error }: PapersTableProps) {
     } finally {
       setGeneratingStates(prev => ({ ...prev, [key]: false }));
     }
-  };
+  }, [generatedContent, initialLoad, savePreferences, papers, aiColumns]);
 
-  const handleGenerateBulk = async (columnId: string) => {
+  const handleGenerateBulk = React.useCallback(async (columnId: string) => {
     setBulkGeneratingStates(prev => ({ ...prev, [columnId]: true }));
     let finalGeneratedContent = generatedContent;
     
@@ -814,11 +813,11 @@ export function PapersTable({ papers, isLoading, error }: PapersTableProps) {
         savePreferences({ generated_content: finalGeneratedContent });
       }
     }
-  };
+  }, [generatedContent, initialLoad, savePreferences, papers, aiColumns]);
 
   const columns = React.useMemo(
     () => createColumns(aiColumns, handleGenerateIndividual, handleGenerateBulk, generatingStates, bulkGeneratingStates, generationErrors, expandedTags, setExpandedTags, minimizedRows, setMinimizedRows), 
-    [aiColumns, generatingStates, bulkGeneratingStates, generationErrors, expandedTags, setExpandedTags, minimizedRows, setMinimizedRows]
+    [aiColumns, generatingStates, bulkGeneratingStates, generationErrors, expandedTags, minimizedRows, handleGenerateBulk, handleGenerateIndividual]
   );
 
   // Merge papers with generated content

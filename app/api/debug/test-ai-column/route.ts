@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify the save by reading it back
-    const { data: verifyPrefs, error: verifyError } = await supabase
+    const { data: verifyPrefs } = await supabase
       .from('user_preferences')
       .select('ai_columns')
       .eq('user_id', user.id)

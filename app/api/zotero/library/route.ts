@@ -30,8 +30,8 @@ export async function GET(request: NextRequest) {
     const items = await itemsResponse.json();
     
     // Transform Zotero items to our Paper format
-    const papers = items
-      .filter((item: any) => {
+    const papers = (items as { data: { itemType: string } }[])
+      .filter((item: { data: { itemType: string } }) => {
         const validTypes = [
           'journalArticle', 
           'conferencePaper', 
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
         ];
         return validTypes.includes(item.data.itemType);
       })
-      .map((item: any) => {
+      .map((item: { [key: string]: unknown; data: { [key: string]: any } }) => {
         const itemType = item.data.itemType;
         
         // Handle different publication sources based on item type
@@ -83,13 +83,13 @@ export async function GET(request: NextRequest) {
         return {
           id: item.key,
           title: item.data.title || 'Untitled',
-          authors: item.data.creators?.map((creator: any) => 
+          authors: item.data.creators?.map((creator: { lastName: string; firstName: string }) => 
             `${creator.lastName || ''}, ${creator.firstName || ''}`.trim().replace(/^,\s*/, '')
           ) || [],
           journal: publicationSource,
           year: item.data.date ? new Date(item.data.date).getFullYear() : new Date().getFullYear(),
           doi: item.data.DOI || '',
-          tags: item.data.tags?.map((tag: any) => tag.tag) || [],
+          tags: item.data.tags?.map((tag: { tag: string }) => tag.tag) || [],
           notes: item.data.abstractNote || '',
           dateAdded: item.data.dateAdded || new Date().toISOString(),
           collections: [], // We'd need a separate API call to get collection names
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   // For future: sync changes back to Zotero
   return NextResponse.json({ error: 'Not implemented yet' }, { status: 501 });
 }

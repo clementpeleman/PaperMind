@@ -71,11 +71,6 @@ export function AddAIColumnDialog({ onAddColumn }: AddAIColumnDialogProps) {
     }
   };
 
-  const useSuggestion = (suggestion: typeof promptSuggestions[0]) => {
-    setName(suggestion.name);
-    setPrompt(suggestion.prompt);
-  };
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -116,7 +111,7 @@ export function AddAIColumnDialog({ onAddColumn }: AddAIColumnDialogProps) {
               required
             />
             <p className="text-xs text-muted-foreground">
-              The AI will receive the paper's title, authors, abstract, and your prompt.
+              The AI will receive the paper&apos;s title, authors, abstract, and your prompt.
             </p>
           </div>
           
@@ -129,7 +124,10 @@ export function AddAIColumnDialog({ onAddColumn }: AddAIColumnDialogProps) {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => useSuggestion(suggestion)}
+                  onClick={() => {
+                    setName(suggestion.name);
+                    setPrompt(suggestion.prompt);
+                  }}
                   className="h-auto p-2 text-left justify-start"
                 >
                   <div>

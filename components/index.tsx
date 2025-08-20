@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, ReactNode, useMemo } from 'react'
+import { ReactNode, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import {
   Drawer,

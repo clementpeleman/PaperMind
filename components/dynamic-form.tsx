@@ -33,7 +33,7 @@ interface DynamicFormProps<T extends z.ZodRawShape = z.ZodRawShape> {
   columnInfo?: Record<string, { data_type: string; is_nullable: boolean }>
 }
 
-const getZodDef = (schema: ZodTypeAny): Record<string, any> =>
+const getZodDef = (schema: ZodTypeAny): { [key: string]: unknown } =>
   (schema as any)._def || (schema as any).def
 
 const unwrapZodType = (fieldSchema: ZodTypeAny): ZodTypeAny => {
@@ -49,7 +49,7 @@ const unwrapZodType = (fieldSchema: ZodTypeAny): ZodTypeAny => {
   let currentSchema = fieldSchema
 
   // Support both old (typeName) and new (type) Zod formats
-  const getTypeName = (def: Record<string, any>) => def.typeName || def.type
+  const getTypeName = (def: { [key: string]: unknown }) => def.typeName || def.type
 
   while (
     getTypeName(getZodDef(currentSchema)) === 'ZodOptional' ||
@@ -64,9 +64,9 @@ const unwrapZodType = (fieldSchema: ZodTypeAny): ZodTypeAny => {
     const typeName = getTypeName(getZodDef(currentSchema))
     if (typeName === 'ZodEffects' || typeName === 'effects') {
       // For ZodEffects, get the schema inside the effect
-      currentSchema = getZodDef(currentSchema).schema
+      currentSchema = getZodDef(currentSchema).schema as ZodTypeAny
     } else {
-      currentSchema = getZodDef(currentSchema).innerType
+      currentSchema = getZodDef(currentSchema).innerType as ZodTypeAny
     }
   }
   return currentSchema
@@ -92,13 +92,13 @@ export function DynamicForm<T extends z.ZodRawShape = z.ZodRawShape>({
       }
 
       // Support both old (typeName) and new (type) Zod formats
-      const getTypeName = (def: Record<string, any>) => def.typeName || def.type
+      const getTypeName = (def: { [key: string]: unknown }) => def.typeName || def.type
 
       if (
         getTypeName(getZodDef(originalFieldSchema)) === 'ZodDefault' ||
         getTypeName(getZodDef(originalFieldSchema)) === 'default'
       ) {
-        acc[key] = getZodDef(originalFieldSchema).defaultValue()
+        acc[key] = (getZodDef(originalFieldSchema).defaultValue as () => unknown)()
         return acc
       }
 
@@ -116,7 +116,7 @@ export function DynamicForm<T extends z.ZodRawShape = z.ZodRawShape>({
         case 'ZodEnum':
         case 'enum':
           // For enums, use the first enum value as default
-          const enumValues = getZodDef(baseType).values || []
+          const enumValues = (getZodDef(baseType).values as string[]) || []
           acc[key] = enumValues.length > 0 ? enumValues[0] : ''
           break
         case 'ZodNumber':
@@ -133,7 +133,7 @@ export function DynamicForm<T extends z.ZodRawShape = z.ZodRawShape>({
       }
       return acc
     },
-    {} as Record<string, any>
+    {} as Record<string, unknown>
   )
 
   const form = useForm<z.infer<typeof schema>>({
@@ -151,11 +151,11 @@ export function DynamicForm<T extends z.ZodRawShape = z.ZodRawShape>({
           if (typeof fieldDefFromSchema === 'undefined') {
             throw new Error(`Schema error in useEffect: schema.shape['${key}'] is undefined.`)
           }
-          const value = initialValues.hasOwnProperty(key) ? initialValues[key] : undefined
+          const value = Object.prototype.hasOwnProperty.call(initialValues, key) ? initialValues[key] : undefined
           const baseFieldType = unwrapZodType(fieldDefFromSchema)
 
           // Support both old (typeName) and new (type) Zod formats
-          const getTypeName = (def: Record<string, any>) => def.typeName || def.type
+          const getTypeName = (def: { [key: string]: unknown }) => def.typeName || def.type
 
           const fieldTypeName = getTypeName(getZodDef(baseFieldType))
           if (fieldTypeName === 'ZodBoolean' || fieldTypeName === 'boolean') {
@@ -163,7 +163,7 @@ export function DynamicForm<T extends z.ZodRawShape = z.ZodRawShape>({
           } else if (fieldTypeName === 'ZodString' || fieldTypeName === 'string') {
             acc[key] = value === null || value === undefined ? '' : String(value)
           } else if (fieldTypeName === 'ZodEnum' || fieldTypeName === 'enum') {
-            const enumValues = getZodDef(baseFieldType).values || []
+            const enumValues = (getZodDef(baseFieldType).values as unknown[]) || []
             acc[key] =
               value === null || value === undefined || !enumValues.includes(value)
                 ? enumValues[0] || ''
@@ -200,7 +200,7 @@ export function DynamicForm<T extends z.ZodRawShape = z.ZodRawShape>({
           }
           return acc
         },
-        {} as Record<string, any>
+        {} as Record<string, unknown>
       )
       form.reset(processedInitialValues as any)
       setTimeout(() => {
@@ -214,7 +214,7 @@ export function DynamicForm<T extends z.ZodRawShape = z.ZodRawShape>({
   const renderField = (fieldName: string, fieldSchema: ZodTypeAny) => {
     const baseType = unwrapZodType(fieldSchema)
     // Support both old (typeName) and new (type) Zod formats
-    const getTypeName = (def: Record<string, any>) => def.typeName || def.type
+    const getTypeName = (def: { [key: string]: unknown }) => def.typeName || def.type
     const typeName = getTypeName(getZodDef(baseType))
     const description = fieldSchema.description
 

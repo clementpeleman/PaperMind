@@ -179,11 +179,11 @@ export async function GET(request: NextRequest) {
       const { createAdminClient } = await import('@/lib/supabase/admin');
       
       const { supabase } = createClient(request);
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
 
       // Check if we already have this Zotero user in our database
       const adminSupabase = createAdminClient();
-      const { data: existingUser, error: existingUserError } = await adminSupabase
+      const { data: existingUser } = await adminSupabase
         .from('users')
         .select('*')
         .eq('zotero_user_id', userId)

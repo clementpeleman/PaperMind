@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     if (existingUser && !selectError) {
       // Update last_login
-      const { data: updatedUser, error: updateError } = await supabase
+      const { data: updatedUser } = await supabase
         .from('users')
         .update({ last_login: new Date().toISOString() })
         .eq('id', existingUser.id)
