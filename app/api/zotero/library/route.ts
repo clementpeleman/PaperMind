@@ -14,13 +14,31 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Fetch library items from Zotero API
-    const itemsUrl = `${ZOTERO_API_BASE_URL}/${libraryType}s/${libraryId}/items`;
+    const authHeaders = {
+      'Authorization': `Bearer ${token}`,
+      'User-Agent': 'PaperMind/1.0',
+    };
+
+    // Fetch collections from Zotero API
+    const collectionsUrl = `${ZOTERO_API_BASE_URL}/${libraryType}s/${libraryId}/collections`;
+    const collectionsResponse = await fetch(collectionsUrl, {
+      headers: authHeaders,
+    });
+
+    const collections: { [key: string]: string } = {};
+    if (collectionsResponse.ok) {
+      const collectionsData = await collectionsResponse.json();
+      // Map collection keys to names
+      collectionsData.forEach((collection: any) => {
+        collections[collection.key] = collection.data.name;
+      });
+    }
+
+    // Fetch library items from Zotero API with format=json to get collection membership
+    // Only get top-level items (exclude annotations, notes, attachments)
+    const itemsUrl = `${ZOTERO_API_BASE_URL}/${libraryType}s/${libraryId}/items/top?format=json&limit=100`;
     const itemsResponse = await fetch(itemsUrl, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'User-Agent': 'PaperMind/1.0',
-      },
+      headers: authHeaders,
     });
 
     if (!itemsResponse.ok) {
@@ -57,6 +75,7 @@ export async function GET(request: NextRequest) {
       abstractNote?: string;
       dateAdded?: string;
       url?: string;
+      collections?: string[];
     }
 
     interface ZoteroItem {
@@ -127,7 +146,7 @@ export async function GET(request: NextRequest) {
           tags: item.data.tags?.map((tag: { tag: string }) => tag.tag) || [],
           notes: item.data.abstractNote || '',
           dateAdded: item.data.dateAdded || new Date().toISOString(),
-          collections: [], // We'd need a separate API call to get collection names
+          collections: item.data.collections?.map(collectionKey => collections[collectionKey]).filter(Boolean) || [],
           status: 'unread' as const, // Default status
           url: item.data.url || '',
           zoteroKey: item.key,

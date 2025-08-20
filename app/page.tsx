@@ -14,6 +14,30 @@ export default function Home() {
   
   // Collection selection state
   const [selectedCollection, setSelectedCollection] = React.useState("All Papers");
+  const [hasSetDefaultCollection, setHasSetDefaultCollection] = React.useState(false);
+
+  // Get available collections from papers
+  const availableCollections = React.useMemo(() => {
+    const allCollections = new Set<string>();
+    papers.forEach(paper => {
+      if (paper.collections && paper.collections.length > 0) {
+        paper.collections.forEach(collection => {
+          if (collection && collection.trim()) {
+            allCollections.add(collection);
+          }
+        });
+      }
+    });
+    return Array.from(allCollections).sort();
+  }, [papers]);
+
+  // Set default collection to first available collection when papers load
+  React.useEffect(() => {
+    if (!hasSetDefaultCollection && papers.length > 0 && availableCollections.length > 0) {
+      setSelectedCollection(availableCollections[0]);
+      setHasSetDefaultCollection(true);
+    }
+  }, [papers, availableCollections, hasSetDefaultCollection]);
 
   // Filter papers based on selected collection
   const filteredPapers = React.useMemo(() => {
@@ -33,10 +57,15 @@ export default function Home() {
         paper.collections && paper.collections.includes(selectedCollection)
       );
       if (!collectionsExist) {
-        setSelectedCollection("All Papers");
+        // If current collection doesn't exist, fall back to first available or "All Papers"
+        if (availableCollections.length > 0) {
+          setSelectedCollection(availableCollections[0]);
+        } else {
+          setSelectedCollection("All Papers");
+        }
       }
     }
-  }, [papers, selectedCollection]);
+  }, [papers, selectedCollection, availableCollections]);
 
   // Show data source selector if not authenticated
   if (!isAuthenticated) {
