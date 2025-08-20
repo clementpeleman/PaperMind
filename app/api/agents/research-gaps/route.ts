@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { validateAgentEnvironment } from '@/lib/agents/config';
 import { ResearchGapInputSchema } from '@/lib/agents/schemas';
+import { ResearchGapAgent } from '@/lib/agents/research-gap-agent';
+import { AgentRegistry } from '@/lib/agents/registry';
 
 // Request validation schema
 const RequestSchema = z.object({
@@ -63,63 +65,61 @@ export async function POST(request: NextRequest) {
 
     const { papers, domain, timeframe, focusAreas } = validationResult.data;
 
-    // TODO: Once ResearchGapAgent is implemented, use it here
-    // For now, return a placeholder response structure
-    const mockGapAnalysis = {
-      identifiedGaps: [
-        {
-          title: "Methodological Gap in " + domain,
-          description: "Placeholder gap analysis - full implementation requires ResearchGapAgent",
-          importance: "high" as const,
-          relatedPapers: papers.slice(0, 3).map(p => p.id),
-          suggestedApproaches: [
-            "Implement ResearchGapAgent with LangChain",
-            "Add comprehensive paper analysis pipeline"
-          ]
-        }
-      ],
-      emergingOpportunities: [
-        {
-          area: "AI-Enhanced Research Analysis",
-          description: "Opportunity to implement intelligent research gap identification",
-          potentialImpact: "transformative" as const,
-          timeToMarket: "medium" as const
-        }
-      ],
-      trendAnalysis: {
-        growingAreas: ["Agent-based research analysis", "LangChain integration"],
-        decliningAreas: ["Manual paper analysis"],
-        stableAreas: [domain],
-        emergingKeywords: ["agentic", "langchain", "automated-analysis"]
-      },
-      recommendations: [
-        {
-          type: "methodology" as const,
-          title: "Implement Full Agent Architecture",
-          description: "Complete the implementation of research gap analysis agent",
-          priority: "high" as const,
-          requiredResources: ["LangChain expertise", "OpenAI API access", "Development time"]
-        }
-      ]
+    // Extract user context from headers
+    const userId = request.headers.get('x-user-id') || undefined;
+    const sessionId = request.headers.get('x-session-id') || undefined;
+
+    // Get or create the research gap agent
+    let agent = AgentRegistry.getAgent('research-gap') as ResearchGapAgent;
+    if (!agent) {
+      agent = new ResearchGapAgent();
+      AgentRegistry.registerAgent(agent);
+    }
+
+    // Prepare agent input
+    const agentInput = {
+      papers,
+      domain,
+      timeframe,
+      focusAreas
     };
 
-    return NextResponse.json({
-      success: true,
-      data: mockGapAnalysis,
-      metadata: {
-        agentName: 'research-gap-analysis',
-        agentVersion: '1.0.0',
-        model: 'gpt-4o-mini',
-        domain,
-        timeframe,
-        focusAreas,
-        paperCount: papers.length,
-        processingTime: 0,
-        tokensUsed: 0,
-        timestamp: new Date().toISOString(),
-        note: 'This is a placeholder response. Full implementation pending.'
-      }
+    // Execute gap analysis
+    const startTime = Date.now();
+    const result = await agent.execute(agentInput, {
+      userId,
+      sessionId,
+      timestamp: new Date().toISOString()
     });
+
+    const processingTime = Date.now() - startTime;
+
+    if (result.success && result.data) {
+      return NextResponse.json({
+        success: true,
+        data: result.data,
+        metadata: {
+          ...result.metadata,
+          domain,
+          timeframe,
+          focusAreas,
+          paperCount: papers.length,
+          processingTime
+        }
+      });
+    } else {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: result.error || 'Gap analysis failed',
+          metadata: {
+            ...result.metadata,
+            processingTime
+          }
+        },
+        { status: 500 }
+      );
+    }
 
   } catch (error) {
     console.error('Error in research gap analysis API:', error);

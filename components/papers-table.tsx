@@ -741,7 +741,7 @@ export function PapersTable({ papers, isLoading, error, collectionContext }: Pap
         
         // Clean up column sizing
         const aiColumnKey = `ai-${columnId}`;
-        const updatedColumnSizing = { ...columnSizing };
+        const updatedColumnSizing = { ...columnSizing as Record<string, number> };
         delete updatedColumnSizing[aiColumnKey];
         setColumnSizing(updatedColumnSizing);
         

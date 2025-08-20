@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
 // Helper function to get user from Supabase Auth
 async function getCurrentUser(request: NextRequest) {
   // Try Supabase Auth first
@@ -244,16 +252,16 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Column not found' }, { status: 404 });
     }
 
-    // Define a type for upsertData and preferences
     interface UpsertPreferences {
       id?: string;
       user_id?: string;
       supabase_user_id?: string;
       ai_columns: Array<{ id: string; name: string; prompt: string }>;
-      generated_content?: unknown;
-      column_widths?: unknown;
       updated_at: string;
-      [key: string]: unknown; // For any additional fields from preferences
+      column_widths?: Json | null;
+      column_visibility?: Json | null;
+      generated_content?: Json | null;
+      [key: string]: unknown; // Voor extra velden
     }
 
     // Extend the preferences type to include ai_columns
@@ -262,8 +270,8 @@ export async function DELETE(request: NextRequest) {
       user_id: string;
       row_height_preset: string;
       custom_row_height: number | null;
-      column_widths: unknown;
-      column_visibility: unknown;
+      column_widths: Json | null;       // ✅ aangepast
+      column_visibility: Json | null;   // ✅ aangepast
       zotero_user_id: string | null;
       zotero_api_key: string | null;
       last_zotero_sync: string | null;
@@ -271,8 +279,8 @@ export async function DELETE(request: NextRequest) {
       created_at: string;
       updated_at: string;
       ai_columns?: Array<{ id: string; name: string; prompt: string }>;
-      generated_content?: unknown;
-    };
+      generated_content?: Json | null;  // ✅ aangepast
+};
 
     // Clean up generated content for this column
     const currentGeneratedContent = preferences?.generated_content as Record<string, Record<string, string>> || {};

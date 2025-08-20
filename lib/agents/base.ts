@@ -47,6 +47,7 @@ export interface AgentContext {
   sessionId?: string;
   preferences?: Record<string, any>;
   metadata?: Record<string, any>;
+  timestamp?: string;
 }
 
 // Base agent interface that all agents must implement

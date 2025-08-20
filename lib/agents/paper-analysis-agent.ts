@@ -23,16 +23,11 @@ export class PaperAnalysisAgent extends BaseAgent<PaperAnalysisInput, PaperAnaly
   public version = '1.0.0';
   public description = 'Analyzes individual research papers for key findings, methodology, limitations, and significance';
 
-  private outputParser: StructuredOutputParser<PaperAnalysisOutput>;
+  private outputParser: StructuredOutputParser<any>;
   private analysisChain: RunnableSequence;
 
   constructor() {
-    super({
-      openai: {
-        model: getOptimalModel('analysis'),
-        temperature: 0.2, // More deterministic for analysis
-      }
-    });
+    super();
 
     // Create structured output parser
     this.outputParser = StructuredOutputParser.fromZodSchema(PaperAnalysisOutputSchema);
