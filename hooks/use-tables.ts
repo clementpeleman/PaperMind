@@ -1,6 +1,6 @@
 'use client'
 
-import { listTablesSql } from '@/lib/pg-meta'
+import { listTablesSql } from '../lib/pg-meta'
 import { runQuery } from '@/hooks/use-run-query'
 import { useQuery } from '@tanstack/react-query'
 

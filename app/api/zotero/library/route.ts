@@ -30,8 +30,43 @@ export async function GET(request: NextRequest) {
     const items = await itemsResponse.json();
     
     // Transform Zotero items to our Paper format
-    const papers = (items as { data: { itemType: string } }[])
-      .filter((item: { data: { itemType: string } }) => {
+    interface ZoteroCreator {
+      lastName?: string;
+      firstName?: string;
+    }
+
+    interface ZoteroTag {
+      tag: string;
+    }
+
+    interface ZoteroItemData {
+      itemType: string;
+      title?: string;
+      creators?: ZoteroCreator[];
+      publicationTitle?: string;
+      conferenceName?: string;
+      websiteTitle?: string;
+      blogTitle?: string;
+      publisher?: string;
+      bookTitle?: string;
+      university?: string;
+      institution?: string;
+      date?: string;
+      DOI?: string;
+      tags?: ZoteroTag[];
+      abstractNote?: string;
+      dateAdded?: string;
+      url?: string;
+    }
+
+    interface ZoteroItem {
+      key: string;
+      version: number;
+      data: ZoteroItemData;
+    }
+
+    const papers = (items as ZoteroItem[])
+      .filter((item: ZoteroItem) => {
         const validTypes = [
           'journalArticle', 
           'conferencePaper', 
@@ -47,7 +82,7 @@ export async function GET(request: NextRequest) {
         ];
         return validTypes.includes(item.data.itemType);
       })
-      .map((item: { [key: string]: unknown; data: { [key: string]: any } }) => {
+      .map((item: ZoteroItem) => {
         const itemType = item.data.itemType;
         
         // Handle different publication sources based on item type
@@ -83,7 +118,7 @@ export async function GET(request: NextRequest) {
         return {
           id: item.key,
           title: item.data.title || 'Untitled',
-          authors: item.data.creators?.map((creator: { lastName: string; firstName: string }) => 
+          authors: item.data.creators?.map((creator: ZoteroCreator) => 
             `${creator.lastName || ''}, ${creator.firstName || ''}`.trim().replace(/^,\s*/, '')
           ) || [],
           journal: publicationSource,

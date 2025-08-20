@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       const timestamp = generateTimestamp();
       const callbackUri = `${CALLBACK_URL}/api/auth/zotero`;
 
-      const params = {
+      const params: Record<string, string> = {
         oauth_callback: callbackUri,
         oauth_consumer_key: ZOTERO_CLIENT_KEY,
         oauth_nonce: nonce,
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
       const nonce = generateNonce();
       const timestamp = generateTimestamp();
 
-      const params = {
+      const params: Record<string, string> = {
         oauth_consumer_key: ZOTERO_CLIENT_KEY,
         oauth_nonce: nonce,
         oauth_signature_method: 'HMAC-SHA1',
@@ -360,6 +360,5 @@ async function createUserWithZotero(accessToken: string, zoteroUserId: string) {
 
   return {
     user: authUser.user,
-    session: authUser.session,
   };
 }

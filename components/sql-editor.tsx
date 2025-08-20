@@ -217,7 +217,6 @@ export function SqlEditor({
                         </div>
                         <Switch
                           id="show-chart"
-                          size="sm"
                           className="mb-0"
                           checked={isChartVisible}
                           onCheckedChange={setIsChartVisible}

@@ -69,7 +69,7 @@ export function ZoteroAuth() {
         
         <div className="space-y-3">
           <div className="text-sm text-muted-foreground">
-            <p className="mb-2">What you'll get:</p>
+            <p className="mb-2">What you&apos;ll get:</p>
             <ul className="list-disc list-inside space-y-1 text-xs">
               <li>Access to your Zotero library</li>
               <li>Real-time sync of papers and notes</li>
@@ -84,7 +84,7 @@ export function ZoteroAuth() {
           </Button>
           
           <p className="text-xs text-muted-foreground text-center">
-            You'll be redirected to Zotero to authorize this app. No passwords are stored.
+            You&apos;ll be redirected to Zotero to authorize this app. No passwords are stored.
           </p>
         </div>
       </CardContent>

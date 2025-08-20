@@ -552,8 +552,8 @@ export function PapersTable({ papers, isLoading, error }: PapersTableProps) {
   };
 
   // Debounced save for column sizing to avoid saving during drag
-  const debouncedSaveColumnSizing = React.useCallback(
-    debounce((newSizing: Record<string, number>) => {
+  const debouncedSaveColumnSizing = React.useMemo(
+    () => debounce((newSizing: Record<string, number>) => {
       savePreferences({ column_widths: newSizing });
     }, 500), // Wait 500ms after last resize before saving
     [savePreferences]

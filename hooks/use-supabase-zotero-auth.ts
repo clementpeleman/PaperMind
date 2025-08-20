@@ -42,11 +42,11 @@ export function useSupabaseZoteroAuth() {
   const supabase = createClient();
 
   // Load user's Zotero credentials
-  const loadZoteroCredentials = useCallback(async (user: User) => {
+  const loadZoteroCredentials = useCallback(async (user: User, accessToken: string) => {
     try {
       const response = await fetch('/api/auth/zotero/credentials', {
         headers: {
-          'Authorization': `Bearer ${user.session?.access_token}`,
+          'Authorization': `Bearer ${accessToken}`,
         },
       });
 
@@ -134,7 +134,7 @@ export function useSupabaseZoteroAuth() {
 
         if (session?.user) {
           // Load Zotero credentials for this user
-          const zoteroCredentials = await loadZoteroCredentials(session.user);
+          const zoteroCredentials = await loadZoteroCredentials(session.user, session.access_token);
           
           setAuthState({
             user: session.user,
@@ -168,7 +168,7 @@ export function useSupabaseZoteroAuth() {
         console.log('Auth state changed:', event, session?.user?.id);
         
         if (session?.user) {
-          const zoteroCredentials = await loadZoteroCredentials(session.user);
+          const zoteroCredentials = await loadZoteroCredentials(session.user, session.access_token);
           setAuthState({
             user: session.user,
             session: session,

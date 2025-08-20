@@ -16,7 +16,7 @@ import {
   useDeleteSecrets,
   useGetSecrets,
 } from '@/hooks/use-secrets'
-import { secretsSchema } from '../../lib/schemas/secrets'
+import { secretsSchema } from '@/lib/secrets'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AlertTriangle, Minus, PlusIcon, Key } from 'lucide-react'
 import { useFieldArray, useForm } from 'react-hook-form'

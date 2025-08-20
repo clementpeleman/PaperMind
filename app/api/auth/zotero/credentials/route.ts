@@ -37,11 +37,18 @@ export async function GET(request: NextRequest) {
       throw userError;
     }
 
+    const typedUser = userData as unknown as {
+      zotero_user_id: string | null;
+      zotero_access_token: string | null;
+      zotero_refresh_token: string | null;
+      zotero_token_expires_at: string | null;
+    };
+
     return NextResponse.json({
-      zoteroUserId: userData.zotero_user_id,
-      zoteroAccessToken: userData.zotero_access_token,
-      zoteroRefreshToken: userData.zotero_refresh_token,
-      expiresAt: userData.zotero_token_expires_at,
+      zoteroUserId: typedUser.zotero_user_id,
+      zoteroAccessToken: typedUser.zotero_access_token,
+      zoteroRefreshToken: typedUser.zotero_refresh_token,
+      expiresAt: typedUser.zotero_token_expires_at,
     });
 
   } catch (error) {

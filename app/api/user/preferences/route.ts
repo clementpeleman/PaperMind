@@ -23,7 +23,7 @@ async function getCurrentUser(request: NextRequest) {
   
   const { data: legacyUser, error } = await adminSupabase
     .from('users')
-    .select('*')
+    .select('*, supabase_user_id')
     .eq('zotero_user_id', zoteroUserId)
     .single();
 
@@ -32,9 +32,10 @@ async function getCurrentUser(request: NextRequest) {
   }
 
   // If user has supabase_user_id, use that; otherwise use legacy ID
+  const typedLegacyUser = legacyUser as unknown as { id: string; supabase_user_id?: string | null };
   return { 
-    supabase_user_id: legacyUser.supabase_user_id || legacyUser.id, 
-    legacy: !legacyUser.supabase_user_id 
+    supabase_user_id: typedLegacyUser.supabase_user_id || typedLegacyUser.id, 
+    legacy: !typedLegacyUser.supabase_user_id 
   };
 }
 

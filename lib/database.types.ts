@@ -14,6 +14,7 @@ export interface Database {
       users: {
         Row: {
           id: string
+          supabase_user_id: string | null   // <-- toevoegen
           zotero_user_id: string
           zotero_username: string | null
           email: string | null
@@ -25,6 +26,7 @@ export interface Database {
         }
         Insert: {
           id?: string
+          supabase_user_id?: string | null   // <-- toevoegen
           zotero_user_id: string
           zotero_username?: string | null
           email?: string | null
@@ -36,6 +38,7 @@ export interface Database {
         }
         Update: {
           id?: string
+          supabase_user_id?: string | null   // <-- toevoegen
           zotero_user_id?: string
           zotero_username?: string | null
           email?: string | null
@@ -206,6 +209,7 @@ export interface Database {
         Row: {
           id: string
           user_id: string
+          supabase_user_id: string | null   // <-- toevoegen
           row_height_preset: string
           custom_row_height: number | null
           column_widths: Json
@@ -214,12 +218,15 @@ export interface Database {
           zotero_api_key: string | null
           last_zotero_sync: string | null
           ai_provider: string
+          ai_columns?: any[];
+          generated_content?: Record<string, any>;
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
-          user_id: string
+          user_id?: string                  // <-- optioneel maken
+          supabase_user_id?: string | null  // <-- toevoegen
           row_height_preset?: string
           custom_row_height?: number | null
           column_widths?: Json
@@ -234,6 +241,7 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string
+          supabase_user_id?: string | null  // <-- toevoegen
           row_height_preset?: string
           custom_row_height?: number | null
           column_widths?: Json
@@ -252,6 +260,13 @@ export interface Database {
             isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_preferences_supabase_user_id_fkey"
+            columns: ["supabase_user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["supabase_user_id"]
           }
         ]
       }

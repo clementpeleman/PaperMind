@@ -40,8 +40,8 @@ async function getCurrentUser(request: NextRequest) {
 
   // If user has supabase_user_id, use that; otherwise use legacy ID
   const result = { 
-    supabase_user_id: legacyUser.supabase_user_id || legacyUser.id, 
-    legacy: !legacyUser.supabase_user_id 
+    supabase_user_id: (legacyUser as any).supabase_user_id || legacyUser.id, 
+    legacy: !(legacyUser as any).supabase_user_id 
   };
   
   console.log('📋 AI Columns - Final user info:', result);
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
       ? supabase.from('user_preferences').select('ai_columns').eq('user_id', userInfo.supabase_user_id)
       : supabase.from('user_preferences').select('ai_columns').eq('supabase_user_id', userInfo.supabase_user_id);
     
-    const { data: preferences, error } = await query.single();
+    const { data: preferences, error } = await query.single<{ ai_columns: Array<{ id: string; name: string; prompt: string }> }>();
 
     if (error && error.code !== 'PGRST116') { // Not found error
       console.error('Error fetching AI columns:', error);

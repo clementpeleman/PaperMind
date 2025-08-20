@@ -197,7 +197,7 @@ export function SupabaseAuth({ onSuccess }: SupabaseAuthProps) {
             </>
           ) : (
             <>
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <button
                 type="button"
                 onClick={() => setIsSignUp(true)}

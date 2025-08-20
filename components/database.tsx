@@ -88,7 +88,7 @@ function EditRowView({
   const columnInfo = useMemo(() => {
     if (!table || !(table.columns as { [key: string]: unknown }[])) return {}
 
-    const info: Record<string, { [key: string]: unknown }> = {}
+    const info: Record<string, { data_type: string; is_nullable: boolean }> = {}
     for (const column of table.columns as { [key: string]: any }[]) {
       // Only include updatable columns that are not generated
       if (!column.is_updatable || column.is_generated) continue

@@ -12,7 +12,7 @@ import {
   type AuthGeneralSettingsSchema,
   authGoogleProviderSchema,
   authPhoneProviderSchema,
-} from '../../lib/schemas/auth'
+} from '@/lib/auth'
 import { AlertTriangle, ChevronRight, Mail, Phone, User } from 'lucide-react'
 import { useCallback, useMemo } from 'react'
 import { z } from 'zod'

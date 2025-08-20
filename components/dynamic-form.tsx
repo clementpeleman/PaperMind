@@ -298,7 +298,7 @@ export function DynamicForm<T extends z.ZodRawShape = z.ZodRawShape>({
               )
             case 'ZodEnum':
             case 'enum':
-              const options = getZodDef(baseType).values
+              const options = (getZodDef(baseType).values as string[]) || []
               const optionLabels = typeof labelConfig === 'object' ? labelConfig.options : undefined
               return (
                 <FormItem className="py-6 border-b">
