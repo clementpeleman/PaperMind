@@ -25,7 +25,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronDown, MoreHorizontal, Edit, Trash, ExternalLink, Sparkles, Loader2, Maximize2, GripVertical } from "lucide-react";
+import { ArrowUpDown, ChevronDown, MoreHorizontal, Trash, ExternalLink, Sparkles, Loader2, Maximize2, GripVertical, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -91,6 +91,7 @@ export const createColumns = (
   aiColumns: AIColumn[], 
   onGenerateIndividual: (columnId: string, paperId: string) => void,
   onGenerateBulk: (columnId: string) => void,
+  onRemoveColumn: (columnId: string) => void,
   generatingStates: Record<string, boolean>,
   bulkGeneratingStates: Record<string, boolean>,
   generationErrors: Record<string, string>,
@@ -359,6 +360,15 @@ export const createColumns = (
             <Sparkles className="h-3 w-3" />
           )}
         </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onRemoveColumn(aiColumn.id)}
+          className="h-6 w-6 p-0 flex-shrink-0 text-destructive hover:text-destructive"
+          title={`Remove ${aiColumn.name} column`}
+        >
+          <X className="h-3 w-3" />
+        </Button>
       </div>
     ),
     cell: ({ row }) => {
@@ -444,7 +454,6 @@ export const createColumns = (
     maxSize: 60,
     size: 60,
     cell: ({ row }) => {
-      const paper = row.original;
       return (
         <div className="flex justify-end w-full">
           <DropdownMenu>
@@ -454,10 +463,6 @@ export const createColumns = (
               </Button>
             </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </DropdownMenuItem>
             <DropdownMenuItem>
               <ExternalLink className="mr-2 h-4 w-4" />
               Open in Zotero
@@ -475,13 +480,20 @@ export const createColumns = (
   },
 ];
 
+export interface CollectionContext {
+  name: string;
+  totalPapers: number;
+  filteredPapers: number;
+}
+
 interface PapersTableProps {
   papers: Paper[];
   isLoading?: boolean;
   error?: string | null;
+  collectionContext?: CollectionContext;
 }
 
-export function PapersTable({ papers, isLoading, error }: PapersTableProps) {
+export function PapersTable({ papers, isLoading, error, collectionContext }: PapersTableProps) {
   const { 
     preferences, 
     loading: preferencesLoading, 
@@ -677,6 +689,74 @@ export function PapersTable({ papers, isLoading, error }: PapersTableProps) {
     }
   };
 
+  const removeAiColumn = React.useCallback(async (columnId: string) => {
+    console.log('🗑️ Removing AI column:', columnId);
+    console.log('🗑️ Auth - userId:', userId, 'token exists:', !!token);
+    
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (userId) {
+        headers['x-zotero-user-id'] = userId;
+      }
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      console.log('🗑️ Sending remove request with headers:', headers);
+      
+      const response = await fetch('/api/ai-columns', {
+        method: 'DELETE',
+        headers,
+        body: JSON.stringify({
+          columnId: columnId,
+        }),
+      });
+      
+      console.log('🗑️ AI column DELETE response status:', response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('🗑️ AI column DELETE response data:', data);
+        
+        // Update local state
+        const updatedAiColumns = aiColumns.filter(col => col.id !== columnId);
+        console.log('🗑️ Updated AI columns list:', updatedAiColumns);
+        setAiColumns(updatedAiColumns);
+        
+        // Clean up generated content for this column
+        const cleanedGeneratedContent: Record<string, Record<string, string>> = {};
+        Object.keys(generatedContent).forEach(paperId => {
+          const paperContent = generatedContent[paperId];
+          const cleanedPaperContent = { ...paperContent };
+          delete cleanedPaperContent[columnId];
+          if (Object.keys(cleanedPaperContent).length > 0) {
+            cleanedGeneratedContent[paperId] = cleanedPaperContent;
+          }
+        });
+        setGeneratedContent(cleanedGeneratedContent);
+        
+        // Clean up column sizing
+        const aiColumnKey = `ai-${columnId}`;
+        const updatedColumnSizing = { ...columnSizing };
+        delete updatedColumnSizing[aiColumnKey];
+        setColumnSizing(updatedColumnSizing);
+        
+        // Note: Column data cleanup is already handled by the API
+        
+        console.log('🗑️ Successfully removed AI column');
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to remove AI column:', errorData);
+      }
+    } catch (error) {
+      console.error('Error removing AI column:', error);
+    }
+  }, [userId, token, aiColumns, generatedContent, columnSizing]);
+
   const generateAiContent = async (columnId: string, paperId: string) => {
     // Find the paper data
     const paper = papers.find(p => p.id === paperId);
@@ -691,34 +771,96 @@ export function PapersTable({ papers, isLoading, error }: PapersTableProps) {
     }
 
     try {
-      const response = await fetch('/api/ai/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: aiColumn.prompt,
-          paperData: {
-            title: paper.title,
-            authors: paper.authors,
-            journal: paper.journal,
-            year: paper.year,
-            notes: paper.notes,
-            tags: paper.tags,
-            doi: paper.doi,
-            itemType: paper.itemType,
-            url: paper.url
-          }
-        }),
-      });
+      // Use the new Paper Analysis Agent if the prompt matches certain patterns
+      const isAnalysisPrompt = aiColumn.prompt.toLowerCase().includes('methodology') || 
+                              aiColumn.prompt.toLowerCase().includes('limitation') ||
+                              aiColumn.prompt.toLowerCase().includes('finding') ||
+                              aiColumn.prompt.toLowerCase().includes('future work');
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `API request failed: ${response.status}`);
+      if (isAnalysisPrompt) {
+        // Use the new agent-based approach with collection context
+        const response = await fetch('/api/agents/smart-column', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            paper: {
+              id: paper.id,
+              title: paper.title,
+              authors: paper.authors,
+              journal: paper.journal,
+              year: paper.year,
+              notes: paper.notes,
+              tags: paper.tags,
+              doi: paper.doi,
+              dateAdded: paper.dateAdded,
+              collections: paper.collections,
+              status: paper.status,
+              itemType: paper.itemType,
+              url: paper.url,
+              zoteroKey: paper.zoteroKey,
+              zoteroVersion: paper.zoteroVersion,
+              aiColumns: paper.aiColumns
+            },
+            columnType: aiColumn.prompt.toLowerCase().includes('methodology') ? 'methodology' :
+                       aiColumn.prompt.toLowerCase().includes('limitation') ? 'limitations' :
+                       aiColumn.prompt.toLowerCase().includes('finding') ? 'findings' :
+                       aiColumn.prompt.toLowerCase().includes('future work') ? 'future_work' : 'custom',
+            customPrompt: aiColumn.prompt,
+            collectionContext: collectionContext ? {
+              name: collectionContext.name,
+              allPapers: papers.map(p => ({
+                id: p.id,
+                title: p.title,
+                authors: p.authors,
+                journal: p.journal,
+                year: p.year,
+                tags: p.tags || [],
+                collections: p.collections || []
+              }))
+            } : undefined
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Agent API request failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.data?.content || data.content;
+      } else {
+        // Fall back to original AI generation for custom prompts
+        const response = await fetch('/api/ai/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            prompt: aiColumn.prompt,
+            paperData: {
+              title: paper.title,
+              authors: paper.authors,
+              journal: paper.journal,
+              year: paper.year,
+              notes: paper.notes,
+              tags: paper.tags,
+              doi: paper.doi,
+              itemType: paper.itemType,
+              url: paper.url
+            }
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `API request failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.content;
       }
-
-      const data = await response.json();
-      return data.content;
     } catch (error) {
       console.error('Error calling AI API:', error);
       if (error instanceof Error) {
@@ -816,8 +958,8 @@ export function PapersTable({ papers, isLoading, error }: PapersTableProps) {
   }, [generatedContent, initialLoad, savePreferences, papers, aiColumns]);
 
   const columns = React.useMemo(
-    () => createColumns(aiColumns, handleGenerateIndividual, handleGenerateBulk, generatingStates, bulkGeneratingStates, generationErrors, expandedTags, setExpandedTags, minimizedRows, setMinimizedRows), 
-    [aiColumns, generatingStates, bulkGeneratingStates, generationErrors, expandedTags, minimizedRows, handleGenerateBulk, handleGenerateIndividual]
+    () => createColumns(aiColumns, handleGenerateIndividual, handleGenerateBulk, removeAiColumn, generatingStates, bulkGeneratingStates, generationErrors, expandedTags, setExpandedTags, minimizedRows, setMinimizedRows), 
+    [aiColumns, generatingStates, bulkGeneratingStates, generationErrors, expandedTags, minimizedRows, handleGenerateBulk, handleGenerateIndividual, removeAiColumn]
   );
 
   // Merge papers with generated content
