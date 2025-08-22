@@ -400,7 +400,7 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows }: { paper: P
     const isFromDatabase = !!savedAnalysisData;
     
     return (
-      <div key={cardType.id} className="bg-white/90 backdrop-blur-sm rounded-xl border border-gray-200/60 relative group hover:shadow-lg hover:border-gray-300/60 transition-all duration-200 overflow-hidden"
+      <div key={cardType.id} className="bg-white/95 backdrop-blur-md rounded-2xl border border-gray-200/50 relative group hover:shadow-xl hover:border-gray-300/70 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
         style={{
           background: `linear-gradient(135deg, ${cardType.bgColor.includes('blue') ? '#f0f9ff' : 
             cardType.bgColor.includes('green') ? '#f0fdf4' : 
@@ -410,74 +410,74 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows }: { paper: P
             cardType.bgColor.includes('yellow') ? '#fefce8' : '#f8fafc'}, white)`
         }}>
         {/* Status Indicators */}
-        <div className="absolute top-3 right-3 flex items-center gap-2">
+        <div className="absolute top-4 right-4 flex items-center gap-3">
           {isFromDatabase && (
-            <div className="flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
-              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+            <div className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-100/80 px-3 py-1.5 rounded-full font-medium border border-emerald-200/60">
+              <div className="w-2 h-2 bg-emerald-600 rounded-full animate-pulse"></div>
               Saved
             </div>
           )}
           {isActive && (
             <button
               onClick={() => removeCard(cardType.id)}
-              className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 backdrop-blur-sm rounded-full p-1.5 shadow-sm hover:shadow-md hover:bg-red-50 border border-gray-200/50"
+              className="opacity-0 group-hover:opacity-100 transition-all duration-200 bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-md hover:shadow-lg hover:bg-red-50/90 border border-gray-200/60 hover:border-red-200/60"
               title={`Remove ${cardType.title}`}
             >
-              <X className="h-3 w-3 text-red-600" />
+              <X className="h-3.5 w-3.5 text-red-600" />
             </button>
           )}
         </div>
         
-        <div className="p-5">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-lg bg-white/80 shadow-sm">
+        <div className="p-6">
+          <div className="flex items-center gap-4 mb-5">
+            <div className="p-2.5 rounded-xl bg-white/90 shadow-sm border border-gray-200/40">
               {cardType.icon}
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-gray-900 text-sm">{cardType.title}</h3>
-              <p className="text-xs text-gray-500 mt-0.5">AI-powered analysis</p>
+              <h3 className="font-semibold text-gray-900 text-base">{cardType.title}</h3>
+              <p className="text-xs text-gray-600 mt-1">AI-powered analysis</p>
             </div>
           </div>
           
           {/* Content Area */}
-          <div className="min-h-[120px]">
+          <div className="min-h-[130px]">
             {hasResult ? (
-              <div className="bg-gradient-to-br from-white/80 to-gray-50/50 border border-gray-200/60 rounded-lg p-4 backdrop-blur-sm">
-                <div className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{analysisResults[cardType.id]}</div>
+              <div className="bg-gradient-to-br from-white/90 to-gray-50/60 border border-gray-200/50 rounded-xl p-5 backdrop-blur-sm shadow-sm">
+                <div className="text-sm text-gray-900 leading-relaxed whitespace-pre-wrap">{analysisResults[cardType.id]}</div>
                 {isFromDatabase && savedAnalysisData && (
-                  <div className="mt-4 pt-3 border-t border-gray-200/60">
+                  <div className="mt-5 pt-4 border-t border-gray-200/50">
                     <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2 text-gray-500">
-                        <Calendar className="h-3 w-3" />
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Calendar className="h-3.5 w-3.5" />
                         <span>Generated {new Date(savedAnalysisData.generatedAt).toLocaleDateString()}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         {savedAnalysisData.confidenceScore && (
-                          <div className="flex items-center gap-1 text-blue-600">
-                            <TrendingUp className="h-3 w-3" />
-                            <span>{(savedAnalysisData.confidenceScore * 100).toFixed(0)}%</span>
+                          <div className="flex items-center gap-1.5 text-blue-700">
+                            <TrendingUp className="h-3.5 w-3.5" />
+                            <span className="font-medium">{(savedAnalysisData.confidenceScore * 100).toFixed(0)}%</span>
                           </div>
                         )}
-                        <span className="text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded text-[10px]">v{savedAnalysisData.version}</span>
+                        <span className="text-gray-500 bg-gray-100/80 px-2 py-1 rounded-md text-[10px] border border-gray-200/60">v{savedAnalysisData.version}</span>
                       </div>
                     </div>
                   </div>
                 )}
               </div>
             ) : isAnalyzing ? (
-              <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+              <div className="flex flex-col items-center justify-center py-10 text-gray-500">
                 <div className="relative">
-                  <div className="w-8 h-8 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin"></div>
+                  <div className="w-10 h-10 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
                 </div>
-                <span className="text-xs mt-3 text-center">Analyzing with AI<br />This may take a moment...</span>
+                <span className="text-sm mt-4 text-center">Analyzing with AI<br /><span className="text-xs text-gray-400">This may take a moment...</span></span>
               </div>
             ) : loadingAnalysis ? (
-              <div className="flex flex-col items-center justify-center py-8 text-gray-500">
-                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-                <span className="text-xs mt-2">Loading saved analysis...</span>
+              <div className="flex flex-col items-center justify-center py-10 text-gray-500">
+                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                <span className="text-sm mt-3">Loading saved analysis...</span>
               </div>
             ) : (
-              <div className="text-sm text-gray-600 leading-relaxed">
+              <div className="text-sm text-gray-700 leading-relaxed">
                 {cardType.content(paper)}
               </div>
             )}
@@ -485,27 +485,27 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows }: { paper: P
           
           {/* Analyze button for AI-enabled cards */}
           {cardType.aiPrompt && (
-            <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between">
+            <div className="mt-5 pt-4 border-t border-gray-200/50 flex items-center justify-between">
               <Button 
                 size="sm" 
                 variant="outline" 
-                className="text-xs h-7"
+                className="text-xs h-8 px-4 border-2 font-medium hover:shadow-md transition-all duration-200"
                 onClick={() => analyzeCard(cardType.id)}
                 disabled={isAnalyzing || loadingAnalysis}
               >
                 {isAnalyzing ? (
                   <>
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
                     Analyzing...
                   </>
                 ) : hasResult ? (
                   <>
-                    <Sparkles className="h-3 w-3 mr-1" />
+                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
                     Re-analyze
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-3 w-3 mr-1" />
+                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
                     Analyze
                   </>
                 )}
@@ -516,7 +516,7 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows }: { paper: P
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="text-xs h-7 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="text-xs h-8 text-red-600 hover:text-red-800 hover:bg-red-50/80 border border-transparent hover:border-red-200/60 rounded-lg transition-all duration-200"
                   onClick={async () => {
                     try {
                       const result = await paperAnalysisService.deleteAnalysis(paper.id, cardType.id as AnalysisType);
@@ -539,7 +539,7 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows }: { paper: P
                   }}
                   title="Delete saved analysis"
                 >
-                  <Trash className="h-3 w-3" />
+                  <Trash className="h-3.5 w-3.5" />
                 </Button>
               )}
             </div>
@@ -557,23 +557,23 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows }: { paper: P
       }} />
       
       <div className="relative z-10 p-8">
-        {/* Enhanced Header */}
-        <div className="mb-8">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex-1 pr-6">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="h-1 w-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"></div>
+        {/* Enhanced Header with better spacing */}
+        <div className="mb-10">
+          <div className="flex items-start justify-between mb-6">
+            <div className="flex-1 pr-8">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-1.5 w-16 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full shadow-sm"></div>
                 <span className="text-sm font-medium text-blue-600 uppercase tracking-wider">Research Paper</span>
               </div>
-              <h2 className="text-2xl font-semibold text-gray-900 leading-tight mb-3" style={{ wordBreak: 'break-word' }}>
+              <h2 className="text-2xl font-semibold text-gray-900 leading-tight mb-4" style={{ wordBreak: 'break-word' }}>
                 {paper.title}
               </h2>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {activeCards.length > 0 && (
                 <Button
                   size="sm"
-                  className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
+                  className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-4 py-2"
                   onClick={analyzeAllCards}
                   disabled={analyzingAll || analyzingCards.size > 0}
                 >
@@ -593,7 +593,7 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows }: { paper: P
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-gray-400 hover:text-gray-600 hover:bg-white/50 rounded-full p-2"
+                className="text-gray-400 hover:text-gray-600 hover:bg-white/70 rounded-full p-2.5 transition-all duration-200"
                 onClick={() => {
                   const newExpanded = new Set(expandedRows);
                   newExpanded.delete(paper.id);
@@ -605,36 +605,42 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows }: { paper: P
             </div>
           </div>
           
-          {/* Enhanced Metadata Cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+          {/* Enhanced Metadata Cards with improved spacing */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             {/* Authors Card */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200/50 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-2 mb-2">
-                <Users className="h-4 w-4 text-blue-600" />
+            <div className="bg-gradient-to-br from-white via-blue-50/30 to-white backdrop-blur-sm rounded-2xl p-5 border border-blue-200/40 shadow-sm hover:shadow-lg hover:border-blue-300/50 transition-all duration-300">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-blue-100/70">
+                  <Users className="h-4 w-4 text-blue-700" />
+                </div>
                 <span className="font-medium text-gray-900 text-sm">Authors</span>
               </div>
-              <p className="text-sm text-gray-700 leading-relaxed">{formatAuthorList(paper.authors)}</p>
+              <p className="text-sm text-gray-800 leading-relaxed">{formatAuthorList(paper.authors)}</p>
             </div>
 
             {/* Publication Info Card */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200/50 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-2 mb-2">
-                <BookOpen className="h-4 w-4 text-green-600" />
+            <div className="bg-gradient-to-br from-white via-green-50/30 to-white backdrop-blur-sm rounded-2xl p-5 border border-green-200/40 shadow-sm hover:shadow-lg hover:border-green-300/50 transition-all duration-300">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-green-100/70">
+                  <BookOpen className="h-4 w-4 text-green-700" />
+                </div>
                 <span className="font-medium text-gray-900 text-sm">Publication</span>
               </div>
-              <div className="space-y-1">
-                <p className="text-sm text-gray-700 italic">{paper.journal || 'Unknown Journal'}</p>
+              <div className="space-y-2">
+                <p className="text-sm text-gray-800 italic">{paper.journal || 'Unknown Journal'}</p>
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-3 w-3 text-gray-500" />
-                  <span className="text-xs text-gray-600">{paper.year}</span>
+                  <Calendar className="h-3 w-3 text-gray-600" />
+                  <span className="text-xs text-gray-700">{paper.year}</span>
                 </div>
               </div>
             </div>
 
             {/* Access Links Card */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200/50 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-2 mb-2">
-                <ExternalLink className="h-4 w-4 text-purple-600" />
+            <div className="bg-gradient-to-br from-white via-purple-50/30 to-white backdrop-blur-sm rounded-2xl p-5 border border-purple-200/40 shadow-sm hover:shadow-lg hover:border-purple-300/50 transition-all duration-300">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-purple-100/70">
+                  <ExternalLink className="h-4 w-4 text-purple-700" />
+                </div>
                 <span className="font-medium text-gray-900 text-sm">Access</span>
               </div>
               <div className="space-y-2">
@@ -643,7 +649,7 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows }: { paper: P
                     href={`https://doi.org/${paper.doi}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-md transition-colors"
+                    className="inline-flex items-center gap-1.5 text-xs text-blue-700 hover:text-blue-900 hover:underline bg-blue-100/60 hover:bg-blue-200/60 px-3 py-1.5 rounded-lg transition-all duration-200"
                   >
                     DOI: {paper.doi.length > 20 ? paper.doi.substring(0, 20) + '...' : paper.doi}
                   </a>
@@ -653,14 +659,14 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows }: { paper: P
                     href={paper.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-green-600 hover:text-green-800 hover:underline bg-green-50 hover:bg-green-100 px-2 py-1 rounded-md transition-colors"
+                    className="inline-flex items-center gap-1.5 text-xs text-green-700 hover:text-green-900 hover:underline bg-green-100/60 hover:bg-green-200/60 px-3 py-1.5 rounded-lg transition-all duration-200"
                   >
                     <ExternalLink className="h-3 w-3" />
                     View Paper
                   </a>
                 )}
                 {(!paper.doi && !paper.url) && (
-                  <span className="text-xs text-gray-400">No direct links available</span>
+                  <span className="text-xs text-gray-500 italic">No direct links available</span>
                 )}
               </div>
             </div>
@@ -668,16 +674,18 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows }: { paper: P
 
           {/* Tags Section */}
           {paper.tags && paper.tags.length > 0 && (
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 border border-gray-200/50 shadow-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <Tag className="h-4 w-4 text-orange-600" />
+            <div className="bg-gradient-to-br from-white via-orange-50/20 to-white backdrop-blur-sm rounded-2xl p-5 border border-orange-200/30 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-lg bg-orange-100/70">
+                  <Tag className="h-4 w-4 text-orange-700" />
+                </div>
                 <span className="font-medium text-gray-900 text-sm">Keywords & Topics</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {paper.tags.map((tag, index) => (
                   <span 
                     key={index} 
-                    className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-200 hover:from-orange-200 hover:to-amber-200 transition-colors"
+                    className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-200/60 hover:from-orange-200 hover:to-amber-200 hover:shadow-sm transition-all duration-200"
                   >
                     {tag}
                   </span>
@@ -687,19 +695,19 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows }: { paper: P
           )}
         </div>
 
-        {/* Analysis Section Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="h-1 w-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"></div>
-            <h3 className="text-lg font-semibold text-gray-900">AI Analysis</h3>
-            <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+        {/* Analysis Section Header with enhanced styling */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <div className="h-1.5 w-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full shadow-sm"></div>
+            <h3 className="text-xl font-semibold text-gray-900">AI Analysis</h3>
+            <span className="text-sm text-purple-700 bg-purple-100/80 px-3 py-1.5 rounded-full font-medium border border-purple-200/60">
               {activeCards.length} active
             </span>
           </div>
         </div>
 
-        {/* Analysis Cards Grid */}
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+        {/* Analysis Cards Grid with enhanced spacing */}
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-8 mb-10">
           {/* Active Cards */}
           {activeCards.map(cardId => {
             const cardType = availableAnalysisCards.find(card => card.id === cardId);
@@ -709,28 +717,33 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows }: { paper: P
           {/* Add Card Button */}
           <div className="relative">
             <div 
-              className={`bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4 flex items-center justify-center cursor-pointer hover:border-gray-400 hover:bg-gray-100 transition-colors min-h-[140px] ${
-                showAddMenu ? 'border-blue-400 bg-blue-50' : ''
+              className={`bg-gradient-to-br from-gray-50 to-gray-100/50 border-2 border-dashed border-gray-300 rounded-2xl p-6 flex items-center justify-center cursor-pointer hover:border-gray-400 hover:bg-gradient-to-br hover:from-gray-100 hover:to-gray-200/50 hover:shadow-md transition-all duration-300 min-h-[160px] ${
+                showAddMenu ? 'border-blue-400 bg-gradient-to-br from-blue-50 to-blue-100/30' : ''
               }`}
               onClick={() => setShowAddMenu(!showAddMenu)}
             >
               <div className="text-center">
-                <Plus className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-600 font-medium">Add Analysis</p>
+                <div className="p-3 rounded-full bg-white/80 shadow-sm border border-gray-200/60 mb-3 mx-auto w-fit">
+                  <Plus className="h-6 w-6 text-gray-500" />
+                </div>
+                <p className="text-sm text-gray-700 font-medium">Add Analysis</p>
+                <p className="text-xs text-gray-500 mt-1">Click to explore options</p>
               </div>
             </div>
 
             {/* Add Menu Dropdown */}
             {showAddMenu && availableToAdd.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-64 overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 mt-3 bg-white/95 backdrop-blur-md border border-gray-200/60 rounded-2xl shadow-xl z-20 max-h-80 overflow-y-auto">
                 {availableToAdd.map(card => (
                   <button
                     key={card.id}
                     onClick={() => addCard(card.id)}
-                    className="w-full text-left p-3 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 last:border-0"
+                    className="w-full text-left p-4 hover:bg-gray-50/80 flex items-center gap-3 border-b border-gray-100/60 last:border-0 transition-all duration-200 first:rounded-t-2xl last:rounded-b-2xl"
                   >
-                    {card.icon}
-                    <span className="text-sm font-medium">{card.title}</span>
+                    <div className="p-1.5 rounded-lg bg-gray-50">
+                      {card.icon}
+                    </div>
+                    <span className="text-sm font-medium text-gray-800">{card.title}</span>
                   </button>
                 ))}
               </div>
@@ -738,40 +751,48 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows }: { paper: P
           </div>
         </div>
 
-        {/* Tags and Metadata - Always visible */}
-        <div className="bg-white rounded-lg p-4 border border-gray-100">
-          <div className="flex items-center gap-2 mb-3">
-            <Tag className="h-5 w-5 text-gray-600" />
-            <h3 className="font-semibold text-gray-800">Technical Details & Metadata</h3>
+        {/* Technical Details & Metadata - Always visible */}
+        <div className="bg-gradient-to-br from-white via-gray-50/30 to-white rounded-2xl p-6 border border-gray-200/40 shadow-sm">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="p-2 rounded-lg bg-gray-100/70">
+              <Tag className="h-5 w-5 text-gray-700" />
+            </div>
+            <h3 className="font-semibold text-gray-900 text-base">Technical Details & Metadata</h3>
           </div>
-          <div className="grid md:grid-cols-3 gap-4 text-sm">
+          <div className="grid md:grid-cols-3 gap-6 text-sm">
             <div>
-              <span className="font-medium">Tags:</span>
-              <div className="flex flex-wrap gap-1 mt-1">
+              <span className="font-medium text-gray-800 text-sm">Tags:</span>
+              <div className="flex flex-wrap gap-1.5 mt-2">
                 {paper.tags && paper.tags.length > 0 ? 
                   paper.tags.map(tag => (
-                    <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
+                    <Badge key={tag} variant="outline" className="text-xs border-gray-300">{tag}</Badge>
                   )) : 
-                  <span className="text-gray-500">No tags assigned</span>
+                  <span className="text-gray-500 italic">No tags assigned</span>
                 }
               </div>
             </div>
             <div>
-              <span className="font-medium">Collection:</span>
-              <p className="text-gray-600">Current collection</p>
+              <span className="font-medium text-gray-800 text-sm">Collection:</span>
+              <p className="text-gray-700 mt-1">Current collection</p>
             </div>
             <div>
-              <span className="font-medium">Added:</span>
-              <p className="text-gray-600">{paper.dateAdded ? new Date(paper.dateAdded).toLocaleDateString() : "Unknown"}</p>
+              <span className="font-medium text-gray-800 text-sm">Added:</span>
+              <p className="text-gray-700 mt-1">{paper.dateAdded ? new Date(paper.dateAdded).toLocaleDateString() : "Unknown"}</p>
             </div>
           </div>
         </div>
 
         {/* Instructions */}
         {activeCards.length === 0 && (
-          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
-            <p className="text-sm text-blue-800">
-              <strong>Get started:</strong> Click the + button above to add analysis sections for this paper.
+          <div className="mt-6 p-6 bg-gradient-to-br from-blue-50 to-indigo-50/50 border border-blue-200/60 rounded-2xl text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Sparkles className="h-5 w-5 text-blue-600" />
+              <p className="text-sm text-blue-800 font-medium">
+                Get started with AI Analysis
+              </p>
+            </div>
+            <p className="text-xs text-blue-700">
+              Click the + button above to add analysis sections for this paper and unlock AI-powered insights.
             </p>
           </div>
         )}
