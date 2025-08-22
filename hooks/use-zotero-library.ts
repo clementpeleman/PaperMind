@@ -50,7 +50,32 @@ export function useZoteroLibrary(token: string | null, userId: string | null): Z
       }
 
       const data = await response.json();
-      setPapers(data.papers || []);
+      const fetchedPapers = data.papers || [];
+      setPapers(fetchedPapers);
+
+      // Automatically sync papers to database for persistence
+      if (fetchedPapers.length > 0) {
+        try {
+          console.log(`🔄 Syncing ${fetchedPapers.length} papers to database...`);
+          const syncResponse = await fetch('/api/papers/sync', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ papers: fetchedPapers }),
+          });
+
+          if (syncResponse.ok) {
+            const syncData = await syncResponse.json();
+            console.log(`✅ Papers synced: ${syncData.synced} successful, ${syncData.errors} errors`);
+          } else {
+            console.warn('Failed to sync papers to database:', syncResponse.statusText);
+          }
+        } catch (syncError) {
+          console.warn('Error syncing papers:', syncError);
+          // Don't throw - this is a background operation that shouldn't break the UI
+        }
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);

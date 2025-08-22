@@ -141,4 +141,10 @@ This document outlines the planned phases for making PaperMind more agentic usin
 
 ---
 
+# Own thoughts:
+
+1. add timeline so updates based on time can be asked to the ai.
+2. What info on the spreadsheet row?
+3. agents analyze papers based on ai features.
+
 *This roadmap is a living document and will be updated as development progresses.*

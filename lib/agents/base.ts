@@ -251,6 +251,46 @@ export abstract class BaseAgent<TInput, TOutput> implements IAgent<TInput, TOutp
   }
 
   /**
+   * Call the LLM with a simple prompt and return the response
+   */
+  protected async callLLM(params: {
+    messages: Array<{ role: 'system' | 'user' | 'assistant', content: string }>;
+    temperature?: number;
+    max_tokens?: number;
+  }): Promise<string> {
+    try {
+      // Convert messages to LangChain format
+      const langchainMessages = params.messages.map(msg => {
+        switch (msg.role) {
+          case 'system':
+            return ['system', msg.content] as [string, string];
+          case 'user':
+            return ['human', msg.content] as [string, string];
+          case 'assistant':
+            return ['ai', msg.content] as [string, string];
+          default:
+            return ['human', msg.content] as [string, string];
+        }
+      });
+
+      // Create LLM with custom parameters
+      const llm = new ChatOpenAI({
+        apiKey: this.config.openai.apiKey,
+        model: this.config.openai.model,
+        temperature: params.temperature ?? this.config.openai.temperature,
+        maxTokens: params.max_tokens ?? this.config.openai.maxTokens,
+        timeout: this.config.openai.timeout,
+      });
+
+      const response = await llm.invoke(langchainMessages);
+      return response.content as string;
+    } catch (error) {
+      console.error('Error calling LLM:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Create a structured output chain with Zod validation
    */
   protected createStructuredChain<T>(schema: z.ZodSchema<T>, prompt: string) {

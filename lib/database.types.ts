@@ -7,6 +7,7 @@ export type Json =
   | Json[]
 
 export type PaperStatus = 'unread' | 'reading' | 'read' | 'archived'
+export type AnalysisType = 'overview' | 'methodology' | 'findings' | 'assessment' | 'impact' | 'personal' | 'custom'
 
 export interface Database {
   public: {
@@ -270,15 +271,128 @@ export interface Database {
           }
         ]
       }
+      paper_analysis: {
+        Row: {
+          id: string
+          user_id: string
+          paper_id: string
+          analysis_type: AnalysisType
+          analysis_title: string
+          content: string
+          prompt_used: string | null
+          confidence_score: number | null
+          processing_time_ms: number | null
+          chunks_used: number | null
+          model_used: string
+          version: number
+          is_active: boolean
+          generated_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          paper_id: string
+          analysis_type: AnalysisType
+          analysis_title: string
+          content: string
+          prompt_used?: string | null
+          confidence_score?: number | null
+          processing_time_ms?: number | null
+          chunks_used?: number | null
+          model_used?: string
+          version?: number
+          is_active?: boolean
+          generated_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          paper_id?: string
+          analysis_type?: AnalysisType
+          analysis_title?: string
+          content?: string
+          prompt_used?: string | null
+          confidence_score?: number | null
+          processing_time_ms?: number | null
+          chunks_used?: number | null
+          model_used?: string
+          version?: number
+          is_active?: boolean
+          generated_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paper_analysis_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paper_analysis_paper_id_fkey"
+            columns: ["paper_id"]
+            isOneToOne: false
+            referencedRelation: "papers"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_latest_paper_analysis: {
+        Args: {
+          p_user_id: string
+          p_paper_id: string
+          p_analysis_type: AnalysisType
+        }
+        Returns: {
+          id: string
+          content: string
+          confidence_score: number | null
+          generated_at: string
+          version: number
+        }[]
+      }
+      save_paper_analysis: {
+        Args: {
+          p_user_id: string
+          p_paper_id: string
+          p_analysis_type: AnalysisType
+          p_analysis_title: string
+          p_content: string
+          p_prompt_used?: string | null
+          p_confidence_score?: number | null
+          p_processing_time_ms?: number | null
+          p_chunks_used?: number | null
+          p_model_used?: string
+        }
+        Returns: string
+      }
+      get_paper_analysis_summary: {
+        Args: {
+          p_user_id: string
+          p_paper_id: string
+        }
+        Returns: {
+          analysis_type: AnalysisType
+          analysis_title: string
+          content: string
+          confidence_score: number | null
+          generated_at: string
+          version: number
+          model_used: string
+        }[]
+      }
     }
     Enums: {
       paper_status: PaperStatus
+      analysis_type: AnalysisType
     }
     CompositeTypes: {
       [_ in never]: never
@@ -306,6 +420,10 @@ export type AIColumnValueUpdate = Database['public']['Tables']['ai_column_values
 export type UserPreferences = Database['public']['Tables']['user_preferences']['Row']
 export type UserPreferencesInsert = Database['public']['Tables']['user_preferences']['Insert']
 export type UserPreferencesUpdate = Database['public']['Tables']['user_preferences']['Update']
+
+export type PaperAnalysis = Database['public']['Tables']['paper_analysis']['Row']
+export type PaperAnalysisInsert = Database['public']['Tables']['paper_analysis']['Insert']
+export type PaperAnalysisUpdate = Database['public']['Tables']['paper_analysis']['Update']
 
 // Combined types for frontend usage
 export type PaperWithAIColumns = Paper & {
