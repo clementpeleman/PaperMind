@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     // Process papers in batches to avoid overwhelming the database
     const batchSize = 10;
     let synced = 0;
-    let updated = 0;
+    // let updated = 0;
     let errors = 0;
 
     for (let i = 0; i < papers.length; i += batchSize) {
