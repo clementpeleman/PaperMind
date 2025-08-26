@@ -435,6 +435,16 @@ export interface Database {
           model_used: string
         }[]
       }
+      log_timeline_activity: {
+        Args: {
+          p_user_id: string
+          p_paper_id: string
+          p_activity_type: TimelineActivityType
+          p_paper_title: string
+          p_details?: Json
+        }
+        Returns: string
+      }
     }
     Enums: {
       paper_status: PaperStatus
