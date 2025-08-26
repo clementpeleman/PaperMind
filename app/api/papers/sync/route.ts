@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
 
                 // Check for new tags
                 const existingTags = new Set(existingPaper.tags || []);
-                const newTags = (paperData.tags || []).filter(tag => !existingTags.has(tag));
+                const newTags = (paperData.tags || []).filter((tag: string) => !existingTags.has(tag));
                 if (newTags.length > 0) {
                   await directTimelineActivityService.logTagsAdded(
                     userId,
@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
 
                 // Check for collection changes
                 const existingCollections = new Set(existingPaper.collections || []);
-                const newCollections = (paperData.collections || []).filter(col => !existingCollections.has(col));
+                const newCollections = (paperData.collections || []).filter((col: string) => !existingCollections.has(col));
                 if (newCollections.length > 0) {
                   await directTimelineActivityService.logCollectionChanged(
                     userId,
@@ -239,6 +239,9 @@ export async function POST(request: NextRequest) {
       
       for (const paperToDelete of papersToDelete) {
         try {
+          if (!paperToDelete.zotero_key) {
+            throw new Error("Paper is missing zotero_key");
+          }
           // Get the paper ID before deletion for timeline logging
           const { data: paperToDeleteFull, error: fetchError } = await supabase
             .from('papers')
