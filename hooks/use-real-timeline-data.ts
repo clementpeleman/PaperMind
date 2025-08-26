@@ -94,7 +94,6 @@ export const useRealTimelineData = (userId: string | null): RealTimelineData => 
     enabled: !!userId,
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
   });
 
   // Query to get total activity count
@@ -120,7 +119,6 @@ export const useRealTimelineData = (userId: string | null): RealTimelineData => 
     enabled: !!userId,
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000,
-    cacheTime: 10 * 60 * 1000,
   });
 
   return useMemo(() => {
