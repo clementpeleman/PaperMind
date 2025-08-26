@@ -147,4 +147,7 @@ This document outlines the planned phases for making PaperMind more agentic usin
 2. What info on the spreadsheet row?
 3. agents analyze papers based on ai features.
 
+4. voor de full text analysis moet je in de zotero attachment kijken van de individuele papers. momenteel krijgt elke paper een abstract fallback, en papers die geen abstract ingevuld hebben krijgen een error: { error: 'No full text available for analysis' }
+5. vectorize paper voor snellere ai antwoorden.
+
 *This roadmap is a living document and will be updated as development progresses.*
