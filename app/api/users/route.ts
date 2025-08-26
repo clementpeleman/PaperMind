@@ -3,10 +3,27 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function POST(request: NextRequest) {
   try {
-    const { zoteroUserId, zoteroUsername, displayName } = await request.json();
+    const { zoteroUserId, zoteroUsername, displayName, supabaseUserId } = await request.json();
+
+    // Support lookup by supabaseUserId (for timeline component)
+    if (supabaseUserId && !zoteroUserId) {
+      const supabase = createAdminClient();
+      
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('supabase_user_id', supabaseUserId)
+        .single();
+
+      if (error || !user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+
+      return NextResponse.json({ user });
+    }
 
     if (!zoteroUserId) {
-      return NextResponse.json({ error: 'Missing zoteroUserId' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing zoteroUserId or supabaseUserId' }, { status: 400 });
     }
 
     const supabase = createAdminClient();

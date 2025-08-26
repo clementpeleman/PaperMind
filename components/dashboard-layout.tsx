@@ -12,13 +12,16 @@ import {
   Settings,
   Plus,
   LogOut,
-  User
+  User,
+  TrendingUp
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useZoteroAuth } from "@/hooks/use-zotero-auth";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
+  activeView?: string;
+  onNavigate?: (viewId: string) => void;
 }
 
 const sidebarItems = [
@@ -26,31 +29,42 @@ const sidebarItems = [
     icon: FileText,
     label: "All Papers",
     href: "/papers",
+    id: "papers",
     active: true
+  },
+  {
+    icon: TrendingUp,
+    label: "Timeline",
+    href: "/timeline",
+    id: "timeline"
   },
   {
     icon: BookOpen,
     label: "Collections",
-    href: "/collections"
+    href: "/collections",
+    id: "collections"
   },
   {
     icon: Tags,
     label: "Tags",
-    href: "/tags"
+    href: "/tags",
+    id: "tags"
   },
   {
     icon: Search,
     label: "Search",
-    href: "/search"
+    href: "/search",
+    id: "search"
   },
   {
     icon: Settings,
     label: "Settings",
-    href: "/settings"
+    href: "/settings",
+    id: "settings"
   }
 ];
 
-export function DashboardLayout({ children }: DashboardLayoutProps) {
+export function DashboardLayout({ children, activeView = "papers", onNavigate }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useZoteroAuth();
 
@@ -66,7 +80,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-64 p-0">
-              <Sidebar />
+              <Sidebar activeView={activeView} onNavigate={onNavigate} />
             </SheetContent>
           </Sheet>
           
@@ -107,7 +121,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <div className="flex">
         {/* Desktop Sidebar */}
         <div className="hidden md:flex">
-          <Sidebar />
+          <Sidebar activeView={activeView} onNavigate={onNavigate} />
         </div>
 
         {/* Main Content */}
@@ -119,7 +133,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   );
 }
 
-function Sidebar() {
+function Sidebar({ activeView, onNavigate }: { activeView?: string; onNavigate?: (viewId: string) => void }) {
   return (
     <div className="w-64 border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="space-y-4 py-4">
@@ -128,11 +142,12 @@ function Sidebar() {
             {sidebarItems.map((item) => (
               <Button
                 key={item.href}
-                variant={item.active ? "secondary" : "ghost"}
+                variant={activeView === item.id ? "secondary" : "ghost"}
                 className={cn(
                   "w-full justify-start gap-2",
-                  item.active && "bg-secondary"
+                  activeView === item.id && "bg-secondary"
                 )}
+                onClick={() => onNavigate?.(item.id)}
               >
                 <item.icon className="h-4 w-4" />
                 {item.label}

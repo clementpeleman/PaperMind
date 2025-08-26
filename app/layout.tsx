@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ReactNode } from "react";
 import { Toaster } from '@/components/ui/sonner'
 import { SupabaseAuthProvider } from '@/contexts/SupabaseAuthContext'
+import { QueryProvider } from '@/providers/query-client-provider'
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,10 +28,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SupabaseAuthProvider>
-          <main>{children}</main>
-          <Toaster />
-        </SupabaseAuthProvider>
+        <QueryProvider>
+          <SupabaseAuthProvider>
+            <main>{children}</main>
+            <Toaster />
+          </SupabaseAuthProvider>
+        </QueryProvider>
       </body>
     </html>
   )

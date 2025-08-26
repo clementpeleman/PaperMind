@@ -8,6 +8,7 @@ export type Json =
 
 export type PaperStatus = 'unread' | 'reading' | 'read' | 'archived'
 export type AnalysisType = 'overview' | 'methodology' | 'findings' | 'assessment' | 'impact' | 'personal' | 'custom'
+export type TimelineActivityType = 'paper_added' | 'status_changed' | 'ai_analysis_completed' | 'note_added' | 'tag_added' | 'collection_changed' | 'ai_column_generated' | 'paper_deleted'
 
 export interface Database {
   public: {
@@ -340,6 +341,51 @@ export interface Database {
           }
         ]
       }
+      timeline_activities: {
+        Row: {
+          id: string
+          user_id: string
+          paper_id: string
+          activity_type: TimelineActivityType
+          paper_title: string
+          details: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          paper_id: string
+          activity_type: TimelineActivityType
+          paper_title: string
+          details?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          paper_id?: string
+          activity_type?: TimelineActivityType
+          paper_title?: string
+          details?: Json
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timeline_activities_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeline_activities_paper_id_fkey"
+            columns: ["paper_id"]
+            isOneToOne: false
+            referencedRelation: "papers"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -393,6 +439,7 @@ export interface Database {
     Enums: {
       paper_status: PaperStatus
       analysis_type: AnalysisType
+      timeline_activity_type: TimelineActivityType
     }
     CompositeTypes: {
       [_ in never]: never
@@ -424,6 +471,10 @@ export type UserPreferencesUpdate = Database['public']['Tables']['user_preferenc
 export type PaperAnalysis = Database['public']['Tables']['paper_analysis']['Row']
 export type PaperAnalysisInsert = Database['public']['Tables']['paper_analysis']['Insert']
 export type PaperAnalysisUpdate = Database['public']['Tables']['paper_analysis']['Update']
+
+export type TimelineActivity = Database['public']['Tables']['timeline_activities']['Row']
+export type TimelineActivityInsert = Database['public']['Tables']['timeline_activities']['Insert']
+export type TimelineActivityUpdate = Database['public']['Tables']['timeline_activities']['Update']
 
 // Combined types for frontend usage
 export type PaperWithAIColumns = Paper & {

@@ -5,12 +5,16 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { PapersTable } from "@/components/papers-table";
 import { DataSourceSelector } from "@/components/data-source-selector";
 import { CollectionSelector } from "@/components/collection-selector";
+import { Timeline } from "@/components/timeline";
 import { useSupabaseZoteroAuth } from "@/hooks/use-supabase-zotero-auth";
 import { useZoteroLibrary } from "@/hooks/use-zotero-library";
 
 export default function Home() {
-  const { isAuthenticated, token, userId } = useSupabaseZoteroAuth();
-  const { papers, isLoading, error, refetch } = useZoteroLibrary(token, userId);
+  const { isAuthenticated, token, userId, user } = useSupabaseZoteroAuth();
+  const { papers, isLoading, error, refetch } = useZoteroLibrary(token, userId, user);
+  
+  // Navigation state
+  const [activeView, setActiveView] = React.useState("papers");
   
   // Collection selection state
   const [selectedCollection, setSelectedCollection] = React.useState("All Papers");
@@ -70,7 +74,7 @@ export default function Home() {
   // Show data source selector if not authenticated
   if (!isAuthenticated) {
     return (
-      <DashboardLayout>
+      <DashboardLayout activeView={activeView} onNavigate={setActiveView}>
         <div className="flex-1 p-4 md:p-8 pt-6">
           <DataSourceSelector />
         </div>
@@ -78,39 +82,56 @@ export default function Home() {
     );
   }
 
-  return (
-    <DashboardLayout>
-      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-        <div className="flex items-center justify-between space-y-2">
-          <CollectionSelector
-            papers={papers}
-            selectedCollection={selectedCollection}
-            onCollectionChange={setSelectedCollection}
-            isLoading={isLoading}
-          />
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={refetch}
-              className="text-primary hover:underline text-sm"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Refreshing...' : 'Refresh'}
-            </button>
+  // Render different views based on activeView
+  const renderCurrentView = () => {
+    switch (activeView) {
+      case "timeline":
+        return (
+          <div className="flex-1 p-4 md:p-8 pt-6">
+            <Timeline />
           </div>
-        </div>
-        <div className="space-y-4">
-          <PapersTable 
-            papers={filteredPapers} 
-            isLoading={isLoading} 
-            error={error}
-            collectionContext={{
-              name: selectedCollection,
-              totalPapers: papers.length,
-              filteredPapers: filteredPapers.length
-            }}
-          />
-        </div>
-      </div>
+        );
+      case "papers":
+      default:
+        return (
+          <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+            <div className="flex items-center justify-between space-y-2">
+              <CollectionSelector
+                papers={papers}
+                selectedCollection={selectedCollection}
+                onCollectionChange={setSelectedCollection}
+                isLoading={isLoading}
+              />
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={refetch}
+                  className="text-primary hover:underline text-sm"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Refreshing...' : 'Refresh'}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <PapersTable 
+                papers={filteredPapers} 
+                isLoading={isLoading} 
+                error={error}
+                collectionContext={{
+                  name: selectedCollection,
+                  totalPapers: papers.length,
+                  filteredPapers: filteredPapers.length
+                }}
+              />
+            </div>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <DashboardLayout activeView={activeView} onNavigate={setActiveView}>
+      {renderCurrentView()}
     </DashboardLayout>
   );
 }

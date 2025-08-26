@@ -53,6 +53,7 @@ import { useTemplatePreferences } from "@/hooks/use-template-preferences";
 import { useZoteroAuth } from "@/hooks/use-zotero-auth";
 import { AIColumn, AddAIColumnDialog } from "./add-ai-column-dialog";
 import { paperAnalysisService, AnalysisSummary } from "@/lib/services/paper-analysis-service";
+import { timelineActivityService } from "@/lib/services/timeline-activity-service";
 import { AnalysisType } from "@/lib/database.types";
 
 export type Paper = {
@@ -1587,6 +1588,23 @@ export function PapersTable({ papers, isLoading, error, collectionContext }: Pap
       if (!initialLoad) {
         savePreferences({ generated_content: newGeneratedContent });
       }
+
+      // Log timeline activity for AI column generation
+      const paper = papers.find(p => p.id === paperId);
+      const aiColumn = columnData || aiColumns.find(col => col.id === columnId);
+      if (paper && aiColumn && userId) {
+        try {
+          await timelineActivityService.logAIColumnGenerated(
+            userId,
+            paperId,
+            paper.title,
+            aiColumn.name
+          );
+        } catch (error) {
+          console.warn('Failed to log AI column generation activity:', error);
+          // Don't fail the whole operation if timeline logging fails
+        }
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate content';
       console.error('Error generating content:', error);
@@ -1625,6 +1643,22 @@ export function PapersTable({ papers, isLoading, error, collectionContext }: Pap
               finalGeneratedContent = newContent;
               return newContent;
             });
+
+            // Log timeline activity for AI column generation
+            const aiColumn = aiColumns.find(col => col.id === columnId);
+            if (aiColumn && userId) {
+              try {
+                await timelineActivityService.logAIColumnGenerated(
+                  userId,
+                  paper.id,
+                  paper.title,
+                  aiColumn.name
+                );
+              } catch (error) {
+                console.warn('Failed to log AI column generation activity:', error);
+                // Don't fail the whole operation if timeline logging fails
+              }
+            }
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Failed to generate content';
             console.error(`Error generating content for paper ${paper.id}:`, error);
@@ -1684,6 +1718,21 @@ export function PapersTable({ papers, isLoading, error, collectionContext }: Pap
               finalGeneratedContent = newContent;
               return newContent;
             });
+
+            // Log timeline activity for AI column generation
+            if (userId) {
+              try {
+                await timelineActivityService.logAIColumnGenerated(
+                  userId,
+                  paper.id,
+                  paper.title,
+                  column.name
+                );
+              } catch (error) {
+                console.warn('Failed to log AI column generation activity:', error);
+                // Don't fail the whole operation if timeline logging fails
+              }
+            }
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Failed to generate content';
             console.error(`Error generating content for paper ${paper.id}:`, error);

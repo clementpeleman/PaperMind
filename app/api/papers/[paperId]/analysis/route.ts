@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { AnalysisType } from '@/lib/database.types';
+import { directTimelineActivityService } from '@/lib/services/timeline-activity-direct';
 
 interface SaveAnalysisRequest {
   analysisType: AnalysisType;
@@ -244,7 +245,7 @@ export async function POST(
     // Verify paper belongs to user - look up by zotero_key since paperId is a Zotero key
     const { data: paperData, error: paperError } = await supabase
       .from('papers')
-      .select('id')
+      .select('id, title')
       .eq('zotero_key', paperId)
       .eq('user_id', userId)
       .single();
@@ -255,6 +256,7 @@ export async function POST(
     
     // Use the actual UUID for database operations
     const actualPaperId = paperData.id;
+    const paperTitle = paperData.title;
 
     // Save analysis using the database function
     const { data: analysisId, error: saveError } = await supabase.rpc('save_paper_analysis', {
@@ -274,6 +276,14 @@ export async function POST(
       console.error('Error saving analysis:', saveError);
       return NextResponse.json({ error: 'Failed to save analysis' }, { status: 500 });
     }
+
+    // Log timeline activity for AI analysis completion
+    await directTimelineActivityService.logAIAnalysisCompleted(
+      userId,
+      actualPaperId,
+      paperTitle,
+      analysisType
+    );
 
     return NextResponse.json({
       success: true,
