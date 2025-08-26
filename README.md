@@ -1,9 +1,7 @@
 # PaperMind
 
-https://github.com/clementpeleman/PaperMind/assets/demo.mp4
-
 <p align="center">
-  <video src="/public/demo.gif" controls width="600"></video>
+  <img src="/public/demo.gif" alt="Demo van PaperMind" width="600"/>
 </p>
 
 <p align="center">
