@@ -1,11 +1,11 @@
 # PaperMind
 
 <p align="center">
-  <img src="/public/demo.gif" alt="Demo van PaperMind" width="600"/>
+  <img src="/public/demo.gif" alt="Demo van PaperMind" width="1000"/>
 </p>
 
 <p align="center">
-  <img src="/public/Zotero.png" alt="Zotero Library" width="600"/>
+  <img src="/public/Zotero.png" alt="Zotero Library" width="1000"/>
 </p>
 
 ---
