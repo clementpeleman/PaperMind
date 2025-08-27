@@ -16,6 +16,20 @@ import {
 } from './schemas';
 import { extractPaperContent } from './utils';
 
+function normalizeResponse(response: unknown): string {
+  if (typeof response === 'string') return response.trim();
+
+  if (typeof response === 'object' && response !== null) {
+    // LangChain BaseMessage-like
+    const maybeContent = (response as any).content;
+    if (typeof maybeContent === 'string') return maybeContent.trim();
+    if (Array.isArray(maybeContent)) return maybeContent.map(c => String(c)).join(' ').trim();
+  }
+
+  // fallback
+  return String(response).trim();
+}
+
 export class PaperAnalysisAgent extends BaseAgent<PaperAnalysisInput, PaperAnalysisOutput> {
   public name = 'paper-analysis';
   public version = '1.0.0';
@@ -216,6 +230,7 @@ Be specific, objective, and evidence-based in your analysis. Focus on actionable
     
     return 'comprehensive';
   }
+  
 
   /**
    * Extract specific insights for smart columns
@@ -288,7 +303,7 @@ Response:`,
 
       return {
         success: true,
-        data: typeof response === 'string' ? response.trim() : response.content?.toString()?.trim() || response.toString().trim(),
+        data: normalizeResponse(response),
         metadata: {
           processingTime: Date.now(),
           tokensUsed: 0,

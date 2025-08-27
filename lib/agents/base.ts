@@ -13,6 +13,7 @@ export interface Paper {
   title: string;
   authors: string[];
   journal: string;
+  fullText?: string;
   year: number;
   doi?: string;
   tags: string[];
