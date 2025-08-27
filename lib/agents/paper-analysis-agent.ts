@@ -220,6 +220,95 @@ Be specific, objective, and evidence-based in your analysis. Focus on actionable
   /**
    * Extract specific insights for smart columns
    */
+  async extractCustomInsight(
+    paper: Paper,
+    customPrompt: string,
+    context?: AgentContext
+  ): Promise<AgentResult<string>> {
+    try {
+      // Extract paper content for analysis
+      const paperContent = extractPaperContent(paper);
+      
+      // Debug logging
+      console.log(`🔍 CustomInsight Debug for "${paper.title}": paperContent length: ${paperContent?.length || 0}`);
+      console.log(`📄 Has paper.fullText: ${!!paper.fullText} (${paper.fullText?.length || 0} chars)`);
+      console.log(`📝 Has paper.notes: ${!!paper.notes} (${paper.notes?.length || 0} chars)`);
+      
+      // Check if we have sufficient content for analysis
+      const hasFullText = paperContent && paperContent.length > 500 && !paperContent.includes('[PDF Document Analysis');
+      const hasNotes = paper.notes && paper.notes.length > 100;
+      
+      // Enhanced debugging
+      console.log(`📊 Content Quality Check for "${paper.title}":`, {
+        paperContentLength: paperContent?.length || 0,
+        hasFullText,
+        hasNotes,
+        paperNotesLength: paper.notes?.length || 0,
+        paperFullTextLength: paper.fullText?.length || 0
+      });
+      
+      // Create custom prompt template with content quality awareness
+      const customTemplate = new PromptTemplate({
+        template: `Analyze this research paper concisely.
+
+Paper: {title} by {authors} ({journal}, {year})
+Content: {content}
+
+Request: {customPrompt}
+
+{analysisInstructions}
+
+Response:`,
+        inputVariables: ["title", "authors", "journal", "year", "content", "customPrompt", "analysisInstructions"]
+      });
+
+      // Determine analysis instructions based on content availability
+      let analysisInstructions = '';
+      
+      if (hasFullText) {
+        analysisInstructions = 'IMPORTANT: Provide a concise response. For scoring requests, give only: "Score: X/10. Reason: [brief 1-2 sentence explanation]". Be direct and avoid lengthy explanations.';
+        console.log(`✅ Using FULL TEXT analysis path for "${paper.title}"`);
+      } else if (hasNotes) {
+        analysisInstructions = 'IMPORTANT: Provide a concise response. For scoring requests, give only: "Score: X/10. Reason: [brief 1-2 sentence explanation noting limited content]". Be direct and avoid lengthy explanations.';
+        console.log(`📄 Using NOTES analysis path for "${paper.title}"`);
+      } else {
+        analysisInstructions = 'IMPORTANT: Provide a concise response. For scoring requests, give only: "Score: 1-3/10. Reason: [brief explanation that only metadata available]". Be direct and avoid lengthy explanations.';
+        console.log(`⚠️ Using METADATA ONLY analysis path for "${paper.title}"`);
+      }
+
+      const response = await customTemplate.pipe(this.llm).invoke({
+        title: paper.title || 'No title',
+        authors: Array.isArray(paper.authors) ? paper.authors.join(', ') : 'No authors',
+        journal: paper.journal || 'Unknown journal',
+        year: paper.year?.toString() || 'Unknown year',
+        content: paperContent || 'No content available',
+        customPrompt: customPrompt,
+        analysisInstructions: analysisInstructions
+      });
+
+      return {
+        success: true,
+        data: typeof response === 'string' ? response.trim() : response.content?.toString()?.trim() || response.toString().trim(),
+        metadata: {
+          processingTime: Date.now(),
+          tokensUsed: 0,
+          model: 'gpt-4o-mini'
+        }
+      };
+    } catch (error) {
+      console.error('Error in custom insight extraction:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Custom analysis failed',
+        metadata: {
+          processingTime: Date.now(),
+          tokensUsed: 0,
+          model: 'gpt-4o-mini'
+        }
+      };
+    }
+  }
+
   async extractColumnInsight(
     paper: Paper, 
     columnType: 'methodology' | 'limitations' | 'findings' | 'future_work' | 'significance',

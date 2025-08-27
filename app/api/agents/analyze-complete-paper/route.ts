@@ -4,6 +4,7 @@ import { paperAnalysisService, ANALYSIS_TYPE_LABELS } from '@/lib/services/paper
 import { AnalysisType } from '@/lib/database.types';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { extractTextFromPDFUrl, isPDFContentType, validateExtractedText } from '@/lib/pdf-extractor';
 
 interface AnalyzeCompleteRequest {
   paperId: string;
@@ -13,6 +14,11 @@ interface AnalyzeCompleteRequest {
   fullText?: string; // If available
   url?: string; // For fetching full text
   activeCardIds: string[]; // Which analysis cards to run
+  // Zotero-specific fields for attachment fetching
+  zoteroToken?: string;
+  zoteroUserId?: string;
+  zoteroLibraryType?: string;
+  zoteroLibraryId?: string;
 }
 
 // Helper function to get user (same as other routes)
@@ -46,28 +52,123 @@ async function getCurrentUser(request: NextRequest) {
   };
 }
 
+/**
+ * Fetch full text from Zotero attachments
+ */
+async function fetchFullTextFromZoteroAttachments(
+  paperId: string,
+  zoteroToken: string,
+  zoteroUserId: string,
+  zoteroLibraryType: string = 'user',
+  zoteroLibraryId?: string
+): Promise<string | null> {
+  try {
+    // Build the attachments API URL
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const attachmentUrl = new URL(`/api/zotero/attachments/${paperId}`, baseUrl);
+    attachmentUrl.searchParams.set('token', zoteroToken);
+    attachmentUrl.searchParams.set('userId', zoteroUserId);
+    attachmentUrl.searchParams.set('libraryType', zoteroLibraryType);
+    if (zoteroLibraryId) {
+      attachmentUrl.searchParams.set('libraryId', zoteroLibraryId);
+    }
+
+    const response = await fetch(attachmentUrl.toString());
+    
+    if (!response.ok) {
+      console.error('Failed to fetch Zotero attachments:', response.status);
+      return null;
+    }
+
+    const { attachments } = await response.json();
+    
+    // Find the first attachment with valid full text
+    const textAttachment = attachments.find((att: any) => 
+      att.hasFullText && att.fullText && att.fullText.length > 100
+    );
+
+    if (textAttachment) {
+      console.log(`✅ Found full text from attachment: ${textAttachment.filename} (${textAttachment.textQuality?.wordCount} words)`);
+      return textAttachment.fullText;
+    }
+
+    console.log('No valid full text found in attachments');
+    return null;
+  } catch (error) {
+    console.error('Error fetching Zotero attachments:', error);
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as AnalyzeCompleteRequest;
-    const { paperId, title, authors, abstract, fullText, url, activeCardIds } = body;
+    const { 
+      paperId, 
+      title, 
+      authors, 
+      abstract, 
+      fullText, 
+      url, 
+      activeCardIds,
+      zoteroToken,
+      zoteroUserId,
+      zoteroLibraryType = 'user',
+      zoteroLibraryId
+    } = body;
 
     // Initialize the agent
     const agent = new PaperAnalyzerAgent();
 
-    // Get full text (either provided or fetch from URL)
+    // Get full text with priority: provided > Zotero attachments > URL > abstract
     let paperFullText = fullText;
-    if (!paperFullText && url) {
+    let fullTextSource = 'provided';
+
+    // Try Zotero attachments first if we have the necessary credentials
+    if (!paperFullText && zoteroToken && zoteroUserId) {
       try {
-        paperFullText = await fetchFullTextFromURL(url);
+        const attachmentText = await fetchFullTextFromZoteroAttachments(
+          paperId, 
+          zoteroToken, 
+          zoteroUserId, 
+          zoteroLibraryType, 
+          zoteroLibraryId
+        );
+        if (attachmentText && attachmentText.length > 100) {
+          paperFullText = attachmentText;
+          fullTextSource = 'zotero_attachment';
+          console.log('✅ Using full text from Zotero attachment');
+        }
       } catch (error) {
-        console.log('Could not fetch full text, using abstract only');
-        paperFullText = abstract; // Fallback to abstract
+        console.log('Could not fetch full text from Zotero attachments:', error);
       }
     }
 
-    if (!paperFullText) {
+    // Fallback to URL if no Zotero attachment found
+    if (!paperFullText && url) {
+      try {
+        paperFullText = await fetchFullTextFromURL(url);
+        fullTextSource = 'url';
+        console.log('✅ Using full text from URL');
+      } catch (error) {
+        console.log('Could not fetch full text from URL:', error);
+      }
+    }
+
+    // Final fallback to abstract
+    if (!paperFullText && abstract && abstract.length > 50) {
+      paperFullText = abstract;
+      fullTextSource = 'abstract_fallback';
+      console.log('⚠️ Falling back to abstract for analysis');
+    }
+
+    // Only return error if we have absolutely no text to analyze
+    if (!paperFullText || paperFullText.length < 50) {
       return NextResponse.json(
-        { error: 'No full text available for analysis' },
+        { 
+          error: 'No full text available for analysis',
+          details: 'Paper has no abstract, attachments, or accessible full text'
+        },
         { status: 400 }
       );
     }
@@ -199,6 +300,7 @@ export async function POST(request: NextRequest) {
       processingInfo: {
         chunksCreated: paperDocument.chunks.length,
         fullTextLength: paperFullText.length,
+        fullTextSource,
         processingStatus: paperDocument.processingStatus,
         totalProcessingTimeMs: processingTime
       }
@@ -220,30 +322,47 @@ export async function POST(request: NextRequest) {
 
 /**
  * Fetch full text from paper URL
- * This is a simplified version - in production you'd want more robust PDF parsing
+ * Supports both PDF and web page extraction
  */
 async function fetchFullTextFromURL(url: string): Promise<string> {
-  // Check if it's a PDF URL
-  if (url.toLowerCase().includes('.pdf')) {
-    // In a real implementation, you'd use a PDF parser here
-    throw new Error('PDF parsing not implemented in this demo');
-  }
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (compatible; PaperMind/1.0; Research Analysis Bot)'
+  };
 
-  // For web pages, try to fetch and extract text
   try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; PaperMind/1.0; Research Analysis Bot)'
-      }
+    // First, make a HEAD request to check content type
+    const headResponse = await fetch(url, {
+      method: 'HEAD',
+      headers
     });
+
+    const contentType = headResponse.headers.get('content-type') || '';
+
+    // Handle PDF URLs
+    if (isPDFContentType(contentType) || url.toLowerCase().includes('.pdf')) {
+      console.log('📄 Detected PDF, extracting text...');
+      const fullText = await extractTextFromPDFUrl(url, headers);
+      const textQuality = validateExtractedText(fullText);
+      
+      if (textQuality.isValid) {
+        console.log(`✅ Successfully extracted PDF text: ${textQuality.wordCount} words, ~${textQuality.estimatedPages} pages`);
+        return fullText;
+      } else {
+        throw new Error(`PDF text extraction failed: insufficient content (${textQuality.wordCount} words)`);
+      }
+    }
+
+    // Handle web pages
+    console.log('🌐 Detected web page, extracting HTML content...');
+    const response = await fetch(url, { headers });
     
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     const html = await response.text();
     
-    // Basic HTML to text conversion (in production, use a proper parser)
+    // Basic HTML to text conversion
     const textContent = html
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
       .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
@@ -251,11 +370,14 @@ async function fetchFullTextFromURL(url: string): Promise<string> {
       .replace(/\s+/g, ' ')
       .trim();
 
-    if (textContent.length < 100) {
-      throw new Error('Extracted text too short');
+    const textQuality = validateExtractedText(textContent);
+    
+    if (textQuality.isValid) {
+      console.log(`✅ Successfully extracted web content: ${textQuality.wordCount} words`);
+      return textContent;
+    } else {
+      throw new Error(`Web content extraction failed: insufficient content (${textQuality.wordCount} words)`);
     }
-
-    return textContent;
     
   } catch (error) {
     console.error('Error fetching full text from URL:', error);

@@ -191,7 +191,10 @@ export function extractPaperContent(paper: any): string {
     parts.push(`Year: ${paper.year}`);
   }
   
-  if (paper.notes) {
+  // Use full text if available, otherwise fall back to notes
+  if (paper.fullText && paper.fullText.length > 100) {
+    parts.push(`Full Text Content: ${paper.fullText}`);
+  } else if (paper.notes) {
     parts.push(`Abstract/Notes: ${paper.notes}`);
   }
   

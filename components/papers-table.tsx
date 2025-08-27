@@ -51,10 +51,12 @@ import { Badge } from "@/components/ui/badge";
 import { CustomHeightDialog } from "./custom-height-dialog";
 import { useTemplatePreferences } from "@/hooks/use-template-preferences";
 import { useZoteroAuth } from "@/hooks/use-zotero-auth";
+import { useZoteroCredentials } from "@/hooks/use-zotero-credentials";
 import { AIColumn, AddAIColumnDialog } from "./add-ai-column-dialog";
 import { paperAnalysisService, AnalysisSummary } from "@/lib/services/paper-analysis-service";
 import { timelineActivityService } from "@/lib/services/timeline-activity-service";
 import { AnalysisType } from "@/lib/database.types";
+import ReactMarkdown from 'react-markdown';
 
 export type Paper = {
   id: string;
@@ -200,7 +202,13 @@ const availableAnalysisCards: AnalysisCardType[] = [
 ];
 
 // Paper Analysis Panel Component
-const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows }: { paper: Paper, expandedRows: Set<string>, setExpandedRows: (rows: Set<string>) => void }) => {
+const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows, token, userId }: { 
+  paper: Paper, 
+  expandedRows: Set<string>, 
+  setExpandedRows: (rows: Set<string>) => void,
+  token: string | null,
+  userId: string | null
+}) => {
   const [activeCards, setActiveCards] = React.useState<string[]>([
     "overview", "methodology", "findings" // Default active cards
   ]);
@@ -253,13 +261,20 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows }: { paper: P
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          paperId: paper.id,
+          paperId: paper.zoteroKey || paper.id,
           title: paper.title,
           authors: paper.authors,
           abstract: paper.notes || '', // Using notes as abstract
           fullText: paper.notes || '', // Fallback to notes if no full text
           url: paper.url,
-          activeCardIds: [cardId] // Only analyze this specific card
+          activeCardIds: [cardId], // Only analyze this specific card
+          // Zotero credentials for attachment fetching (only if authenticated)
+          ...(token && userId ? {
+            zoteroToken: token,
+            zoteroUserId: userId,
+            zoteroLibraryType: 'user',
+            zoteroLibraryId: userId
+          } : {})
         }),
       });
 
@@ -330,13 +345,20 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows }: { paper: P
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          paperId: paper.id,
+          paperId: paper.zoteroKey || paper.id,
           title: paper.title,
           authors: paper.authors,
           abstract: paper.notes || '',
           fullText: paper.notes || '',
           url: paper.url,
-          activeCardIds: activeCards
+          activeCardIds: activeCards,
+          // Zotero credentials for attachment fetching (only if authenticated)
+          ...(token && userId ? {
+            zoteroToken: token,
+            zoteroUserId: userId,
+            zoteroLibraryType: 'user',
+            zoteroLibraryId: userId
+          } : {})
         }),
       });
 
@@ -401,7 +423,7 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows }: { paper: P
     const isFromDatabase = !!savedAnalysisData;
     
     return (
-      <div key={cardType.id} className="bg-white/95 backdrop-blur-md rounded-2xl border border-gray-200/50 relative group hover:shadow-xl hover:border-gray-300/70 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+      <div key={cardType.id} className="bg-white/95 backdrop-blur-md rounded-2xl border border-gray-200/50 relative group hover:shadow-xl hover:border-gray-300/70 hover:-translate-y-1 transition-all duration-300 min-w-0 w-full"
         style={{
           background: `linear-gradient(135deg, ${cardType.bgColor.includes('blue') ? '#f0f9ff' : 
             cardType.bgColor.includes('green') ? '#f0fdf4' : 
@@ -429,22 +451,141 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows }: { paper: P
           )}
         </div>
         
-        <div className="p-6">
+        <div className="p-6 min-w-0 w-full">
           <div className="flex items-center gap-4 mb-5">
             <div className="p-2.5 rounded-xl bg-white/90 shadow-sm border border-gray-200/40">
               {cardType.icon}
             </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-gray-900 text-base">{cardType.title}</h3>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-gray-900 text-base break-words">{cardType.title}</h3>
               <p className="text-xs text-gray-600 mt-1">AI-powered analysis</p>
             </div>
           </div>
           
           {/* Content Area */}
-          <div className="min-h-[130px]">
+          <div className="min-h-[130px] min-w-0 w-full">
             {hasResult ? (
-              <div className="bg-gradient-to-br from-white/90 to-gray-50/60 border border-gray-200/50 rounded-xl p-5 backdrop-blur-sm shadow-sm">
-                <div className="text-sm text-gray-900 leading-relaxed whitespace-pre-wrap">{analysisResults[cardType.id]}</div>
+              <div className="bg-gradient-to-br from-white/90 to-gray-50/60 border border-gray-200/50 rounded-xl p-5 backdrop-blur-sm shadow-sm min-w-0">
+                <div 
+                  className="analysis-content text-sm text-gray-900 leading-snug"
+                  style={{
+                    wordWrap: 'break-word',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'anywhere',
+                    hyphens: 'auto',
+                    whiteSpace: 'wrap',
+                    maxWidth: '100%',
+                    width: '100%'
+                  }}
+                >
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => (
+                        <p 
+                          className="text-gray-800 mb-1"
+                          style={{ 
+                            wordWrap: 'break-word', 
+                            wordBreak: 'break-word',
+                            overflowWrap: 'anywhere',
+                            whiteSpace: 'wrap'
+                          }}
+                        >
+                          {children}
+                        </p>
+                      ),
+                      strong: ({ children }) => (
+                        <strong 
+                          className="font-semibold text-gray-900"
+                          style={{ 
+                            wordWrap: 'break-word', 
+                            wordBreak: 'break-word'
+                          }}
+                        >
+                          {children}
+                        </strong>
+                      ),
+                      em: ({ children }) => (
+                        <em 
+                          className="italic text-gray-800"
+                          style={{ 
+                            wordWrap: 'break-word', 
+                            wordBreak: 'break-word' 
+                          }}
+                        >
+                          {children}
+                        </em>
+                      ),
+                      ul: ({ children }) => (
+                        <ul 
+                          className="list-none space-y-0.5 mb-1"
+                          style={{ maxWidth: '100%', width: '100%' }}
+                        >
+                          {children}
+                        </ul>
+                      ),
+                      li: ({ children }) => (
+                        <li 
+                          className="relative pl-6 text-gray-800 before:content-['•'] before:absolute before:left-0 before:text-blue-600 before:font-bold"
+                          style={{ 
+                            wordWrap: 'break-word',
+                            wordBreak: 'break-word',
+                            overflowWrap: 'anywhere',
+                            maxWidth: '100%'
+                          }}
+                        >
+                          {children}
+                        </li>
+                      ),
+                      code: ({ children }) => (
+                        <code 
+                          className="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono text-gray-800"
+                          style={{ 
+                            wordWrap: 'break-word',
+                            wordBreak: 'break-all',
+                            overflowWrap: 'anywhere'
+                          }}
+                        >
+                          {children}
+                        </code>
+                      ),
+                      h1: ({ children }) => (
+                        <h1 
+                          className="text-lg font-semibold text-gray-900 mb-2"
+                          style={{ 
+                            wordWrap: 'break-word',
+                            wordBreak: 'break-word'
+                          }}
+                        >
+                          {children}
+                        </h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 
+                          className="text-base font-semibold text-gray-900 mb-2"
+                          style={{ 
+                            wordWrap: 'break-word',
+                            wordBreak: 'break-word'
+                          }}
+                        >
+                          {children}
+                        </h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 
+                          className="text-sm font-semibold text-gray-900 mb-1"
+                          style={{ 
+                            wordWrap: 'break-word',
+                            wordBreak: 'break-word'
+                          }}
+                        >
+                          {children}
+                        </h3>
+                      )
+                    }}
+                  >
+                    {analysisResults[cardType.id]}
+                  </ReactMarkdown>
+                </div>
                 {isFromDatabase && savedAnalysisData && (
                   <div className="mt-5 pt-4 border-t border-gray-200/50">
                     <div className="flex items-center justify-between text-xs">
@@ -616,7 +757,7 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows }: { paper: P
                 </div>
                 <span className="font-medium text-gray-900 text-sm">Authors</span>
               </div>
-              <p className="text-sm text-gray-800 leading-relaxed">{formatAuthorList(paper.authors)}</p>
+              <p className="text-sm text-gray-800 leading-relaxed whitespace-normal">{formatAuthorList(paper.authors)}</p>
             </div>
 
             {/* Publication Info Card */}
@@ -1059,7 +1200,7 @@ export const createColumns = (
       return (
         <div className="w-full">
           {value ? (
-            <div className="text-sm" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>
+            <div className="text-sm" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', whiteSpace: 'wrap' }}>
               {displayValue}
             </div>
           ) : isGenerating ? (
@@ -1173,6 +1314,7 @@ export function PapersTable({ papers, isLoading, error, collectionContext }: Pap
   } = useTemplatePreferences();
   
   const { userId, token } = useZoteroAuth();
+  const { zoteroUserId, zoteroAccessToken, isLoading: credentialsLoading } = useZoteroCredentials();
   
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -1468,13 +1610,38 @@ export function PapersTable({ papers, isLoading, error, collectionContext }: Pap
     }
 
     try {
-      // Use the new Paper Analysis Agent if the prompt matches certain patterns
-      const isAnalysisPrompt = aiColumn.prompt.toLowerCase().includes('methodology') || 
-                              aiColumn.prompt.toLowerCase().includes('limitation') ||
-                              aiColumn.prompt.toLowerCase().includes('finding') ||
-                              aiColumn.prompt.toLowerCase().includes('future work');
+      // Use the new Paper Analysis Agent if the prompt asks for these analysis types or research quality scoring
+      const promptLower = aiColumn.prompt.toLowerCase();
+      const isAnalysisPrompt = (promptLower.startsWith('methodology') || promptLower.includes('what methodology') || promptLower.includes('describe the methodology')) ||
+                              (promptLower.startsWith('limitation') || promptLower.includes('what limitations') || promptLower.includes('identify limitations')) ||
+                              (promptLower.startsWith('finding') || promptLower.includes('what findings') || promptLower.includes('key findings')) ||
+                              (promptLower.includes('future work') && (promptLower.startsWith('future work') || promptLower.includes('what future work'))) ||
+                              // Research quality scoring patterns
+                              (promptLower.includes('research quality') || promptLower.includes('quality score') || promptLower.includes('evaluate') && (promptLower.includes('scale') || promptLower.includes('score')) || promptLower.includes('methodology rigor') || promptLower.includes('statistical validity'));
 
       if (isAnalysisPrompt) {
+        // Wait for credentials to load before proceeding
+        if (credentialsLoading) {
+          console.log('⏳ Waiting for Zotero credentials to load...');
+          // Retry after a short delay
+          setTimeout(() => generateAiContent(columnId, paperId, columnData), 1000);
+          return 'Loading credentials...';
+        }
+        
+        // Debug Zotero credentials before sending request
+        console.log('🔐 Smart Column Request Debug:', {
+          // Old localStorage system
+          hasToken: !!token,
+          hasUserId: !!userId,
+          tokenLength: token?.length || 0,
+          // New API system
+          hasZoteroAccessToken: !!zoteroAccessToken,
+          hasZoteroUserId: !!zoteroUserId,
+          zoteroTokenLength: zoteroAccessToken?.length || 0,
+          credentialsLoading,
+          zoteroUserId: zoteroUserId?.substring(0, 8) + '...' || 'none'
+        });
+        
         // Use the new agent-based approach with collection context
         const response = await fetch('/api/agents/smart-column', {
           method: 'POST',
@@ -1484,37 +1651,50 @@ export function PapersTable({ papers, isLoading, error, collectionContext }: Pap
           body: JSON.stringify({
             paper: {
               id: paper.id,
-              title: paper.title,
-              authors: paper.authors,
-              journal: paper.journal,
-              year: paper.year,
-              notes: paper.notes,
-              tags: paper.tags,
-              doi: paper.doi,
-              dateAdded: paper.dateAdded,
-              collections: paper.collections,
-              status: paper.status,
-              itemType: paper.itemType,
-              url: paper.url,
-              zoteroKey: paper.zoteroKey,
-              zoteroVersion: paper.zoteroVersion,
-              aiColumns: paper.aiColumns
+              title: paper.title || '',
+              authors: Array.isArray(paper.authors) ? paper.authors : [],
+              journal: paper.journal || '',
+              year: typeof paper.year === 'number' ? paper.year : parseInt(paper.year) || 0,
+              notes: paper.notes || '',
+              tags: Array.isArray(paper.tags) ? paper.tags : [],
+              doi: paper.doi || '',
+              dateAdded: paper.dateAdded || new Date().toISOString(),
+              collections: Array.isArray(paper.collections) ? paper.collections : [],
+              status: paper.status || 'unread',
+              itemType: paper.itemType || '',
+              url: paper.url || '',
+              zoteroKey: paper.zoteroKey || '',
+              zoteroVersion: typeof paper.zoteroVersion === 'number' ? paper.zoteroVersion : 0,
+              aiColumns: paper.aiColumns || {}
             },
-            columnType: aiColumn.prompt.toLowerCase().includes('methodology') ? 'methodology' :
-                       aiColumn.prompt.toLowerCase().includes('limitation') ? 'limitations' :
-                       aiColumn.prompt.toLowerCase().includes('finding') ? 'findings' :
-                       aiColumn.prompt.toLowerCase().includes('future work') ? 'future_work' : 'custom',
+            columnType: (promptLower.startsWith('methodology') || promptLower.includes('what methodology') || promptLower.includes('describe the methodology')) ? 'methodology' :
+                       (promptLower.startsWith('limitation') || promptLower.includes('what limitations') || promptLower.includes('identify limitations')) ? 'limitations' :
+                       (promptLower.startsWith('finding') || promptLower.includes('what findings') || promptLower.includes('key findings')) ? 'findings' :
+                       (promptLower.includes('future work') && (promptLower.startsWith('future work') || promptLower.includes('what future work'))) ? 'future_work' : 
+                       (promptLower.startsWith('significance') || promptLower.includes('what significance') || promptLower.includes('assess significance')) ? 'significance' : 'custom',
             customPrompt: aiColumn.prompt,
+            // Zotero credentials for full text access (prioritize new API-based system)
+            ...((zoteroAccessToken && zoteroUserId) ? {
+              zoteroToken: zoteroAccessToken,
+              zoteroUserId: zoteroUserId,
+              zoteroLibraryType: 'user',
+              zoteroLibraryId: zoteroUserId
+            } : (token && userId) ? {
+              zoteroToken: token,
+              zoteroUserId: userId,
+              zoteroLibraryType: 'user',
+              zoteroLibraryId: userId
+            } : {}),
             collectionContext: collectionContext ? {
               name: collectionContext.name,
               allPapers: papers.map(p => ({
                 id: p.id,
-                title: p.title,
-                authors: p.authors,
-                journal: p.journal,
-                year: p.year,
-                tags: p.tags || [],
-                collections: p.collections || []
+                title: p.title || '',
+                authors: Array.isArray(p.authors) ? p.authors : [],
+                journal: p.journal || '',
+                year: typeof p.year === 'number' ? p.year : parseInt(p.year) || 0,
+                tags: Array.isArray(p.tags) ? p.tags : [],
+                collections: Array.isArray(p.collections) ? p.collections : []
               }))
             } : undefined
           }),
@@ -2020,7 +2200,7 @@ export function PapersTable({ papers, isLoading, error, collectionContext }: Pap
                     {expandedRows.has(row.id) && (
                       <TableRow className="border-0">
                         <TableCell colSpan={columns.length} className="p-0 bg-muted/20">
-                          <PaperAnalysisPanel paper={row.original} expandedRows={expandedRows} setExpandedRows={setExpandedRows} />
+                          <PaperAnalysisPanel paper={row.original} expandedRows={expandedRows} setExpandedRows={setExpandedRows} token={token} userId={userId} />
                         </TableCell>
                       </TableRow>
                     )}

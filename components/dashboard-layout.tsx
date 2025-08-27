@@ -89,10 +89,10 @@ export function DashboardLayout({ children, activeView = "papers", onNavigate }:
           </div>
 
           <div className="ml-auto flex items-center space-x-3">
-            <Button size="sm" className="gap-2">
+            {/* <Button size="sm" className="gap-2">
               <Plus className="h-4 w-4" />
               Add Paper
-            </Button>
+            </Button> */}
             
             {/* User info and logout */}
             {user && (

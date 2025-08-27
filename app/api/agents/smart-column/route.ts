@@ -11,6 +11,52 @@ import { PaperAnalysisAgent } from '@/lib/agents/paper-analysis-agent';
 import { createAgentCollectionContext } from '@/lib/agents/collection-utils';
 import { createAgentContext } from '@/lib/agents/utils';
 
+// Helper function to fetch full text from Zotero attachments
+async function fetchFullTextFromZoteroAttachments(
+  paperId: string,
+  zoteroToken: string,
+  zoteroUserId: string,
+  zoteroLibraryType: string,
+  zoteroLibraryId?: string
+): Promise<string | null> {
+  try {
+    console.log(`🔍 Fetching Zotero attachments for ${paperId}...`);
+    
+    const attachmentUrl = new URL(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/zotero/attachments/${paperId}`);
+    attachmentUrl.searchParams.set('token', zoteroToken);
+    attachmentUrl.searchParams.set('userId', zoteroUserId);
+    attachmentUrl.searchParams.set('libraryType', zoteroLibraryType);
+    if (zoteroLibraryId) {
+      attachmentUrl.searchParams.set('libraryId', zoteroLibraryId);
+    }
+
+    const response = await fetch(attachmentUrl.toString());
+    
+    if (!response.ok) {
+      console.error('Failed to fetch Zotero attachments:', response.status);
+      return null;
+    }
+
+    const { attachments } = await response.json();
+    
+    // Find the first attachment with valid full text
+    const textAttachment = attachments.find((att: any) => 
+      att.hasFullText && att.fullText && att.fullText.length > 100
+    );
+
+    if (textAttachment) {
+      console.log(`✅ Found full text from attachment: ${textAttachment.filename} (${textAttachment.textQuality?.wordCount} words)`);
+      return textAttachment.fullText;
+    }
+
+    console.log('No valid full text found in attachments');
+    return null;
+  } catch (error) {
+    console.error('Error fetching Zotero attachments:', error);
+    return null;
+  }
+}
+
 // Request validation schema
 const RequestSchema = z.object({
   paper: z.object({
@@ -47,6 +93,11 @@ const RequestSchema = z.object({
       collections: z.array(z.string()),
     })),
   }).optional(),
+  // Zotero credentials for full text access
+  zoteroToken: z.string().optional(),
+  zoteroUserId: z.string().optional(),
+  zoteroLibraryType: z.enum(['user', 'group']).default('user'),
+  zoteroLibraryId: z.string().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -74,12 +125,61 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { paper, columnType, customPrompt, outputFormat, maxLength, collectionContext } = validationResult.data;
+    const { 
+      paper, 
+      columnType, 
+      customPrompt, 
+      outputFormat, 
+      maxLength, 
+      collectionContext,
+      zoteroToken,
+      zoteroUserId,
+      zoteroLibraryType,
+      zoteroLibraryId
+    } = validationResult.data;
 
     // Get user context
     const userId = request.headers.get('x-user-id') || undefined;
     const sessionId = request.headers.get('x-session-id') || undefined;
     const context = createAgentContext(userId, sessionId);
+
+    // Get full text with priority: provided notes > Zotero attachments > fallback
+    let paperFullText = paper.notes;
+    let fullTextSource = 'notes';
+
+    // Try Zotero attachments if we have the necessary credentials (always prefer PDF over notes)
+    console.log(`🔍 Smart Column PDF Check: paper.notes length: ${paper.notes?.length || 0}, has zoteroToken: ${!!zoteroToken}, has zoteroKey: ${!!paper.zoteroKey}`);
+    
+    if (zoteroToken && zoteroUserId && paper.zoteroKey) {
+      console.log(`📄 Attempting to fetch PDF for paper: ${paper.title} (${paper.zoteroKey})`);
+      try {
+        const attachmentText = await fetchFullTextFromZoteroAttachments(
+          paper.zoteroKey, 
+          zoteroToken, 
+          zoteroUserId, 
+          zoteroLibraryType || 'user', 
+          zoteroLibraryId
+        );
+        if (attachmentText && attachmentText.length > 100) {
+          paperFullText = attachmentText;
+          fullTextSource = 'zotero_attachment';
+          console.log(`✅ Using full text from Zotero attachment for smart column analysis: ${attachmentText.length} characters`);
+        } else {
+          console.log(`⚠️ No valid attachment text found for paper: ${paper.zoteroKey}`);
+        }
+      } catch (error) {
+        console.log('❌ Could not fetch full text from Zotero attachments:', error);
+      }
+    } else {
+      console.log('⏭️ Skipping PDF fetch - using existing notes or missing credentials');
+    }
+
+    // Update paper object with full text for analysis
+    const enrichedPaper = {
+      ...paper,
+      notes: paperFullText || paper.notes,
+      fullText: paperFullText
+    };
 
     // Create collection context for analysis if provided
     let agentCollectionContext = undefined;
@@ -94,32 +194,23 @@ export async function POST(request: NextRequest) {
     const agent = new PaperAnalysisAgent();
     
     try {
-      // Determine analysis type based on column type
-      let analysisType: 'comprehensive' | 'methodology' | 'limitations' | 'findings' | 'future_work' = 'comprehensive';
-      switch (columnType) {
-        case 'methodology':
-          analysisType = 'methodology';
-          break;
-        case 'limitations':
-          analysisType = 'limitations';
-          break;
-        case 'findings':
-          analysisType = 'findings';
-          break;
-        case 'future_work':
-          analysisType = 'future_work';
-          break;
-        default:
-          analysisType = 'comprehensive';
+      let result;
+      
+      if (columnType === 'custom' && customPrompt) {
+        // Use custom insight extraction for custom prompts
+        result = await agent.extractCustomInsight(
+          enrichedPaper as any,
+          customPrompt,
+          context
+        );
+      } else {
+        // Use standard column insight extraction for predefined types
+        result = await agent.extractColumnInsight(
+          enrichedPaper as any,
+          columnType === 'significance' ? 'significance' : columnType as any,
+          context
+        );
       }
-
-      const result = await agent.extractColumnInsight(
-        paper as any,
-        columnType === 'significance' ? 'significance' :
-        columnType === 'custom' ? 'findings' : // Default for custom
-        columnType as any,
-        context
-      );
 
       if (!result.success || !result.data) {
         throw new Error(result.error || 'Analysis failed');
@@ -147,11 +238,15 @@ export async function POST(request: NextRequest) {
           }
           break;
         case 'score':
-          // For significance scoring, extract relevance/reliability score
-          if (columnType === 'significance') {
-            content = 'Significance assessment: High impact research contribution';
-          } else {
-            content = 'Analysis complete - see detailed results';
+          // For scoring, we should use the actual AI-generated content
+          // The agent should have provided the score based on the prompt
+          // Don't override it unless it's empty
+          if (typeof content !== 'string' || content.trim() === '') {
+            if (columnType === 'significance') {
+              content = 'Significance assessment: High impact research contribution';
+            } else {
+              content = 'Score: Analysis complete - see detailed results';
+            }
           }
           break;
       }
