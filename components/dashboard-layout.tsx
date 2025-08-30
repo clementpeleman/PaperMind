@@ -10,7 +10,6 @@ import {
   Tags, 
   Search, 
   Settings,
-  Plus,
   LogOut,
   User,
   TrendingUp

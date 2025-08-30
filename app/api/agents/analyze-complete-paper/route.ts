@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PaperAnalyzerAgent, DEFAULT_ANALYSIS_CARDS } from '@/lib/agents/paper-analyzer-agent';
-import { paperAnalysisService, ANALYSIS_TYPE_LABELS } from '@/lib/services/paper-analysis-service';
+import { ANALYSIS_TYPE_LABELS } from '@/lib/services/paper-analysis-service';
 import { AnalysisType } from '@/lib/database.types';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';

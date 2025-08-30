@@ -292,7 +292,6 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows, token, userI
         [cardId]: analysisContent
       }));
 
-      console.log(`✅ Analysis completed for ${cardId}:`, analysisContent);
 
       // Save individual analysis to database
       try {
@@ -308,7 +307,6 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows, token, userI
           });
           
           if (saveResult.success) {
-            console.log(`💾 Individual analysis saved for ${cardId}`);
             // Refresh saved analysis data
             const { analyses } = await paperAnalysisService.getAllAnalysis(paper.id);
             setSavedAnalysis(analyses);
@@ -375,8 +373,6 @@ const PaperAnalysisPanel = ({ paper, expandedRows, setExpandedRows, token, userI
         ...data.results
       }));
 
-      console.log('✅ Bulk analysis completed:', data.results);
-      console.log(`💾 ${data.savedToDatabase || 0} analysis results saved to database`);
 
       // Refresh saved analysis data after bulk operation
       try {
@@ -1427,8 +1423,6 @@ export function PapersTable({ papers, isLoading, error, collectionContext }: Pap
   };
 
   const addAiColumn = async (newColumn: Omit<AIColumn, "id">) => {
-    console.log('🚀 Creating AI column:', newColumn);
-    console.log('🚀 Auth - userId:', userId, 'token exists:', !!token);
     
     // Set flag to prevent AI columns from being overwritten during creation
     setIsAddingColumn(true);
@@ -1446,7 +1440,6 @@ export function PapersTable({ papers, isLoading, error, collectionContext }: Pap
         headers['Authorization'] = `Bearer ${token}`;
       }
       
-      console.log('🚀 Sending request with headers:', headers);
       
       const response = await fetch('/api/ai-columns', {
         method: 'POST',
@@ -1457,11 +1450,9 @@ export function PapersTable({ papers, isLoading, error, collectionContext }: Pap
         }),
       });
       
-      console.log('🚀 AI column API response status:', response.status);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('🚀 AI column API response data:', data);
         
         const column: AIColumnType = {
           id: data.aiColumn.id,
@@ -1470,10 +1461,8 @@ export function PapersTable({ papers, isLoading, error, collectionContext }: Pap
           isGenerating: false
         };
         
-        console.log('🚀 Created column object:', column);
         
         const updatedAiColumns = [...aiColumns, column];
-        console.log('🚀 Updated AI columns list:', updatedAiColumns);
         setAiColumns(updatedAiColumns);
         
         // Reset the flag now that we've successfully added the column
@@ -1508,7 +1497,6 @@ export function PapersTable({ papers, isLoading, error, collectionContext }: Pap
   };
 
   const addAiColumnAndGenerate = async (newColumn: Omit<AIColumn, "id">) => {
-    console.log('🚀 Creating AI column with auto-generation:', newColumn);
     
     try {
       // First, create the column

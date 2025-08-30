@@ -16,19 +16,15 @@ async function getCurrentUser(request: NextRequest) {
   const { supabase } = createClient(request);
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-  console.log('🔍 AI Columns - Supabase Auth check:', { user: user?.id, error: authError?.message });
 
   if (user && !authError) {
-    console.log('✅ AI Columns - Using Supabase Auth user:', user.id);
     return { supabase_user_id: user.id, legacy: false };
   }
 
   // Fallback to legacy Zotero auth headers for existing users
   const zoteroUserId = request.headers.get('x-zotero-user-id');
-  console.log('🔍 AI Columns - Checking legacy Zotero headers:', { zoteroUserId });
   
   if (!zoteroUserId) {
-    console.log('❌ AI Columns - No auth found');
     return null;
   }
 
@@ -40,7 +36,6 @@ async function getCurrentUser(request: NextRequest) {
     .eq('zotero_user_id', zoteroUserId)
     .single();
 
-  console.log('🔍 AI Columns - Legacy user lookup:', { legacyUser: legacyUser?.id, error: error?.message });
 
   if (error) {
     return null;
@@ -52,7 +47,6 @@ async function getCurrentUser(request: NextRequest) {
     legacy: !(legacyUser as any).supabase_user_id 
   };
   
-  console.log('📋 AI Columns - Final user info:', result);
   return result;
 }
 
@@ -92,9 +86,7 @@ export async function POST(request: NextRequest) {
     
     // Get current user
     const userInfo = await getCurrentUser(request);
-    console.log('🔐 AI Columns API - Found user:', userInfo);
     if (!userInfo) {
-      console.log('🔐 AI Columns API - No user found, unauthorized');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -106,17 +98,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Get current preferences (all fields to preserve them) using appropriate column
-    console.log('💾 AI Columns API - Looking for preferences for user:', userInfo.supabase_user_id);
     const query = userInfo.legacy 
       ? supabase.from('user_preferences').select('*').eq('user_id', userInfo.supabase_user_id)
       : supabase.from('user_preferences').select('*').eq('supabase_user_id', userInfo.supabase_user_id);
     
     const { data: preferences, error: prefsError } = await query.single<Preferences>();
 
-    console.log('💾 AI Columns API - Preferences query result:', { preferences, error: prefsError });
 
     if (prefsError && prefsError.code !== 'PGRST116') {
-      console.error('💾 AI Columns API - Error fetching preferences:', prefsError);
+      console.error('Error fetching preferences:', prefsError);
       return NextResponse.json({ error: 'Failed to load preferences' }, { status: 500 });
     }
     
@@ -129,9 +119,7 @@ export async function POST(request: NextRequest) {
 
     // Update AI columns
     const currentAiColumns = preferences?.ai_columns || [];
-    console.log('💾 AI Columns API - Current AI columns:', currentAiColumns);
     const updatedAiColumns = [...currentAiColumns, newColumn];
-    console.log('💾 AI Columns API - Updated AI columns:', updatedAiColumns);
 
     // Define a type for upsertData and preferences
     interface UpsertPreferences {
@@ -169,13 +157,10 @@ export async function POST(request: NextRequest) {
 
     if (userInfo.legacy) {
       upsertData.user_id = userInfo.supabase_user_id;
-      console.log('💾 AI Columns - Using legacy user_id:', userInfo.supabase_user_id);
     } else {
       upsertData.supabase_user_id = userInfo.supabase_user_id;
-      console.log('💾 AI Columns - Using supabase_user_id:', userInfo.supabase_user_id);
     }
     
-    console.log('💾 AI Columns API - About to upsert:', upsertData);
     
     // Upsert with appropriate conflict resolution
     const conflictColumn = userInfo.legacy ? 'user_id' : 'supabase_user_id';
@@ -187,19 +172,17 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    console.log('💾 AI Columns API - Upsert result:', { data, error });
 
     if (error) {
-      console.error('💾 AI Columns API - Error saving AI column:', error);
+      console.error('Error saving AI column:', error);
       return NextResponse.json({ error: 'Failed to save AI column', details: error.message }, { status: 500 });
     }
 
     if (!data) {
-      console.error('💾 AI Columns API - No data returned from upsert');
+      console.error('No data returned from upsert');
       return NextResponse.json({ error: 'Failed to save AI column - no data returned' }, { status: 500 });
     }
 
-    console.log('💾 AI Columns API - Successfully saved column, returning:', newColumn);
     return NextResponse.json({ aiColumn: newColumn });
 
   } catch (error) {
@@ -214,9 +197,7 @@ export async function DELETE(request: NextRequest) {
     
     // Get current user
     const userInfo = await getCurrentUser(request);
-    console.log('🗑️ AI Columns DELETE - Found user:', userInfo);
     if (!userInfo) {
-      console.log('🗑️ AI Columns DELETE - No user found, unauthorized');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -228,25 +209,21 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Get current preferences (all fields to preserve them) using appropriate column
-    console.log('🗑️ AI Columns DELETE - Looking for preferences for user:', userInfo.supabase_user_id);
     const query = userInfo.legacy 
       ? supabase.from('user_preferences').select('*').eq('user_id', userInfo.supabase_user_id)
       : supabase.from('user_preferences').select('*').eq('supabase_user_id', userInfo.supabase_user_id);
     
     const { data: preferences, error: prefsError } = await query.single<Preferences>();
 
-    console.log('🗑️ AI Columns DELETE - Preferences query result:', { preferences, error: prefsError });
 
     if (prefsError && prefsError.code !== 'PGRST116') {
-      console.error('🗑️ AI Columns DELETE - Error fetching preferences:', prefsError);
+      console.error('Error fetching preferences:', prefsError);
       return NextResponse.json({ error: 'Failed to load preferences' }, { status: 500 });
     }
     
     // Remove AI column
     const currentAiColumns = preferences?.ai_columns || [];
-    console.log('🗑️ AI Columns DELETE - Current AI columns:', currentAiColumns);
     const updatedAiColumns = currentAiColumns.filter(col => col.id !== columnId);
-    console.log('🗑️ AI Columns DELETE - Updated AI columns:', updatedAiColumns);
 
     if (currentAiColumns.length === updatedAiColumns.length) {
       return NextResponse.json({ error: 'Column not found' }, { status: 404 });
@@ -311,13 +288,10 @@ export async function DELETE(request: NextRequest) {
 
     if (userInfo.legacy) {
       upsertData.user_id = userInfo.supabase_user_id;
-      console.log('🗑️ AI Columns DELETE - Using legacy user_id:', userInfo.supabase_user_id);
     } else {
       upsertData.supabase_user_id = userInfo.supabase_user_id;
-      console.log('🗑️ AI Columns DELETE - Using supabase_user_id:', userInfo.supabase_user_id);
     }
     
-    console.log('🗑️ AI Columns DELETE - About to upsert:', upsertData);
     
     // Upsert with appropriate conflict resolution
     const conflictColumn = userInfo.legacy ? 'user_id' : 'supabase_user_id';
@@ -329,19 +303,17 @@ export async function DELETE(request: NextRequest) {
       .select()
       .single();
 
-    console.log('🗑️ AI Columns DELETE - Upsert result:', { data, error });
 
     if (error) {
-      console.error('🗑️ AI Columns DELETE - Error removing AI column:', error);
+      console.error('Error removing AI column:', error);
       return NextResponse.json({ error: 'Failed to remove AI column', details: error.message }, { status: 500 });
     }
 
     if (!data) {
-      console.error('🗑️ AI Columns DELETE - No data returned from upsert');
+      console.error('No data returned from upsert');
       return NextResponse.json({ error: 'Failed to remove AI column - no data returned' }, { status: 500 });
     }
 
-    console.log('🗑️ AI Columns DELETE - Successfully removed column');
     return NextResponse.json({ success: true, columnId });
 
   } catch (error) {
